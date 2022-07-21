@@ -5,12 +5,13 @@
 
 #pragma once
 
-#include "global/Cereal_Func.h"
+#include "Comm/global/Cereal_Func.h"
 #include "unittests/print_stl.h"
 
 #include <vector>
 #include <map>
 #include <string>
+#include <cereal/types/string.hpp>
 
 #include <unistd.h>
 

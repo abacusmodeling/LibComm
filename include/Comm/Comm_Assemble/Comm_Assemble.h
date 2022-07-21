@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "Comm_Keys/Comm_Keys_31-gather.h"
-#include "Comm_Trans/Comm_Trans.h"
-#include "Comm_Tools.h"
+#include "../Comm_Keys/Comm_Keys_31-gather.h"
+#include "../Comm_Trans/Comm_Trans.h"
+#include "../Comm_Tools.h"
 
 #include <mpi.h>
 #include <functional>

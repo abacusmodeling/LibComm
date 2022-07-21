@@ -9,10 +9,10 @@
 #include <map>
 #include <tuple>
 #include <fstream>
-#include "Comm_Assemble/Comm_Assemble.h"
-#include "example/Communicate_Map-1.h"
-#include "example/Communicate_Map-2.h"
-#include "global/MPI_Wrapper.h"
+#include "Comm/Comm_Assemble/Comm_Assemble.h"
+#include "Comm/example/Communicate_Map-1.h"
+#include "Comm/example/Communicate_Map-2.h"
+#include "Comm/global/MPI_Wrapper.h"
 #include "unittests/print_stl.h"
 
 namespace Communicate_Map_Test

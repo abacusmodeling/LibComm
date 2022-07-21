@@ -6,13 +6,13 @@
 #pragma once
 
 #include "Comm_Keys_31-sr.h"
-#include "global/Cereal_Func.h"
+#include "../global/Cereal_Func.h"
 
 #include <mpi.h>
 #include <thread>
 #include <sstream>
 #include <cereal/archives/binary.hpp>
-#include<string>
+#include <string>
 
 #define MPI_CHECK(x) if((x)!=MPI_SUCCESS)	throw std::runtime_error(std::string(__FILE__)+" line "+std::to_string(__LINE__));
 

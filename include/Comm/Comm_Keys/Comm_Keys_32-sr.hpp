@@ -6,7 +6,7 @@
 #pragma once
 
 #include "Comm_Keys_32-sr.h"
-#include "global/Cereal_Func.h"
+#include "../global/Cereal_Func.h"
 
 #include <mpi.h>
 #include <thread>

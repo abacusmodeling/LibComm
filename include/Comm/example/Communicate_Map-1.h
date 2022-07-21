@@ -1,3 +1,7 @@
+//=======================
+// AUTHOR : Peize Lin
+// DATE :   2022-01-05
+//=======================
 
 #pragma once
 
@@ -34,6 +38,15 @@ namespace Communicate_Map
 	}
 	*/
 
+	template<typename Tkey, typename Tvalue>
+	void set_value_assignment(
+		Tkey &&key,
+		Tvalue &&value,
+		std::map<Tkey,Tvalue> &data)
+	{
+		data[key] = std::move(value);
+	}
+
 	template<typename Tkey0, typename Tkey1, typename Tvalue>
 	void set_value_assignment(
 		std::tuple<Tkey0,Tkey1> &&key,
@@ -41,6 +54,15 @@ namespace Communicate_Map
 		std::map<Tkey0,std::map<Tkey1,Tvalue>> &data)
 	{
 		data[std::get<0>(key)][std::get<1>(key)] = std::move(value);
+	}
+
+	template<typename Tkey0, typename Tkey1, typename Tkey2, typename Tvalue>
+	void set_value_assignment(
+		std::tuple<Tkey0,Tkey1,Tkey2> &&key,
+		Tvalue &&value,
+		std::map<Tkey0,std::map<Tkey1,std::map<Tkey2,Tvalue>>> &data)
+	{
+		data[std::get<0>(key)][std::get<1>(key)][std::get<2>(key)] = std::move(value);
 	}
 
 	// 加
@@ -59,6 +81,20 @@ namespace Communicate_Map
 	}
 	*/
 
+	template<typename Tkey, typename Tvalue>
+	void set_value_add(
+		Tkey &&key,
+		Tvalue &&value,
+		std::map<Tkey,Tvalue> &data)
+	{
+		Tvalue &value_tmp = data[key];
+//		if (value_tmp.empty())
+		if (!value_tmp)
+			value_tmp = std::move(value);
+		else
+			value_tmp += std::move(value);
+	}
+
 	template<typename Tkey0, typename Tkey1, typename Tvalue>
 	void set_value_add(
 		std::tuple<Tkey0,Tkey1> &&key,
@@ -72,6 +108,20 @@ namespace Communicate_Map
 		else
 			value_tmp += std::move(value);
 	}
+	
+	template<typename Tkey0, typename Tkey1, typename Tkey2, typename Tvalue>
+	void set_value_add(
+		std::tuple<Tkey0,Tkey1,Tkey2> &&key,
+		Tvalue &&value,
+		std::map<Tkey0,std::map<Tkey1,std::map<Tkey2,Tvalue>>> &data)
+	{
+		Tvalue &value_tmp = data[std::get<0>(key)][std::get<1>(key)][std::get<2>(key)];
+//		if (value_tmp.empty())
+		if (!value_tmp)
+			value_tmp = std::move(value);
+		else
+			value_tmp += std::move(value);
+	}	
 
 	/*
 	// 等于
@@ -141,12 +191,39 @@ namespace Communicate_Map
 	}
 
 
+	template<typename Tkey, typename Tvalue>
+	std::map<Tkey,Tvalue> init_datas_local(const int rank_recv)
+	{
+		return std::map<Tkey,Tvalue>();
+	}
+	
 	template<typename Tkey0, typename Tkey1, typename Tvalue>
 	std::map<Tkey0,std::map<Tkey1,Tvalue>> init_datas_local(const int rank_recv)
 	{
 		return std::map<Tkey0,std::map<Tkey1,Tvalue>>();
 	}
+	
+	template<typename Tkey0, typename Tkey1, typename Tkey2, typename Tvalue>
+	std::map<Tkey0,std::map<Tkey1,std::map<Tkey2,Tvalue>>> init_datas_local(const int rank_recv)
+	{
+		return std::map<Tkey0,std::map<Tkey1,std::map<Tkey2,Tvalue>>>();
+	}
 
+	
+	template<typename Tkey, typename Tvalue>
+	void add_datas(
+		std::map<Tkey,Tvalue> &&data_local,
+		std::map<Tkey,Tvalue> &data_recv)
+	{
+		for (auto &&data_local_A : data_local)
+		{
+			Tvalue &data = data_recv[std::move(data_local_A.first)];
+			if(!data)
+				data = std::move(data_local_A.second);
+			else
+				data += std::move(data_local_A.second);
+		}
+	}
 	
 	template<typename Tkey0, typename Tkey1, typename Tvalue>
 	void add_datas(
@@ -163,7 +240,27 @@ namespace Communicate_Map
 				else
 					data += std::move(data_local_B.second);
 			}
-			
+		}
+	}
+	
+	template<typename Tkey0, typename Tkey1, typename Tkey2, typename Tvalue>
+	void add_datas(
+		std::map<Tkey0,std::map<Tkey1,std::map<Tkey2,Tvalue>>> &&data_local,
+		std::map<Tkey0,std::map<Tkey1,std::map<Tkey2,Tvalue>>> &data_recv)
+	{
+		for (auto &&data_local_A : data_local)
+		{
+			for (auto &&data_local_B : data_local_A.second)
+			{
+				for (auto &&data_local_C : data_local_B.second)
+				{
+					Tvalue &data = data_recv[std::move(data_local_A.first)][std::move(data_local_B.first)][std::move(data_local_C.first)];
+					if(!data)
+						data = std::move(data_local_C.second);
+					else
+						data += std::move(data_local_C.second);
+				}
+			}
 		}
 	}
 }

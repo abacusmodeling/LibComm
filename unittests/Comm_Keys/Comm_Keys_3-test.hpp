@@ -5,11 +5,11 @@
 
 #pragma once
 
-//#include "Comm_Keys/Comm_Keys_31-gather.h"
-//#include "Comm_Keys/Comm_Keys_32-gather.h"
-#include "Comm_Keys/Comm_Keys_31-sr.h"
-#include "Comm_Keys/Comm_Keys_32-sr.h"
-#include "example/Communicate_Set.h"
+#include "Comm/Comm_Keys/Comm_Keys_31-gather.h"
+#include "Comm/Comm_Keys/Comm_Keys_32-gather.h"
+//#include "Comm/Comm_Keys/Comm_Keys_31-sr.h"
+//#include "Comm/Comm_Keys/Comm_Keys_32-sr.h"
+#include "Comm/example/Communicate_Set.h"
 #include "unittests/print_stl.h"
 
 #include <mpi.h>

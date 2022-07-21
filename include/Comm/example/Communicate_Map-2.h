@@ -37,7 +37,7 @@ namespace Communicate_Map
 		for(const auto &data0 : datas)
 			for(const auto &data1 : data0.second)
 				for(const auto &data2 : data1.second)
-					func(std::make_tuple(std::cref(data0.first), std::cref(data1.first), std;:cref(data2.first)));
+					func(std::make_tuple(std::cref(data0.first), std::cref(data1.first), std::cref(data2.first)));
 	}
 
 	template<typename Tkey, typename Tvalue>
@@ -56,11 +56,23 @@ namespace Communicate_Map
 	}
 	template<typename Tkey0, typename Tkey1, typename Tkey2, typename Tvalue>
 	const Tvalue &get_value(
-		const std::tuple<Tkey0, Tkey1> &key,
+		const std::tuple<Tkey0, Tkey1, Tkey2> &key,
 		const std::map<Tkey0, std::map<Tkey1, std::map<Tkey2, Tvalue>>> &m)
 	{
-		return m.at(std::get<0>(key)).at(std::get<1>(key).at(std::get<2>(key)));
+		return m.at(std::get<0>(key)).at(std::get<1>(key)).at(std::get<2>(key));
 	}
+
+	template<typename Tkey>
+	class Judge_Map
+	{
+	public:
+		bool judge(const Tkey &key) const
+		{
+			return s.find(key)!=s.end();
+		}
+		std::set<Tkey> s;
+		template <class Archive> void serialize( Archive & ar ){ ar(s); }
+	};
 
 	template<typename Tkey0, typename Tkey1>
 	class Judge_Map2
