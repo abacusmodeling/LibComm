@@ -47,11 +47,11 @@ public:
 		Tdatas_recv &datas_recv);
 
 private:
-	void isend_data (const int rank_isend, const Tdatas_isend &datas_isend, std::stringstream &ss_isend, MPI_Request &request_isend) const;
+	void isend_data (const int rank_isend, const Tdatas_isend &datas_isend, std::string &str_isend, MPI_Request &request_isend) const;
 	void recv_data (Tdatas_recv &datas_recv, const MPI_Status &status, std::atomic_flag &lock_set_value);
 	void post_process(
 		std::vector<MPI_Request> &requests_isend,
-		std::vector<std::stringstream> &sss_isend,
+		std::vector<std::string> &strs_isend,
 		std::vector<std::future<void>> &futures_isend,
 		std::vector<std::future<void>> &futures_recv) const;
 

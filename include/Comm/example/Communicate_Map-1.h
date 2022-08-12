@@ -77,7 +77,7 @@ namespace Communicate_Map
 		if (value_tmp.empty())
 			value_tmp = value;
 		else
-			value_tmp += value;
+			value_tmp = value_tmp + value;
 	}
 	*/
 
@@ -92,7 +92,7 @@ namespace Communicate_Map
 		if (!value_tmp)
 			value_tmp = std::move(value);
 		else
-			value_tmp += std::move(value);
+			value_tmp = value_tmp + std::move(value);
 	}
 
 	template<typename Tkey0, typename Tkey1, typename Tvalue>
@@ -106,7 +106,7 @@ namespace Communicate_Map
 		if (!value_tmp)
 			value_tmp = std::move(value);
 		else
-			value_tmp += std::move(value);
+			value_tmp = value_tmp + std::move(value);
 	}
 	
 	template<typename Tkey0, typename Tkey1, typename Tkey2, typename Tvalue>
@@ -120,7 +120,7 @@ namespace Communicate_Map
 		if (!value_tmp)
 			value_tmp = std::move(value);
 		else
-			value_tmp += std::move(value);
+			value_tmp = value_tmp + std::move(value);
 	}	
 
 	/*
@@ -142,7 +142,7 @@ namespace Communicate_Map
 	{
 		Tensor<> &data_tmp = data[std::get<0>(key)][std::get<1>(key)][std::get<2>(key)];
 		if (data_tmp.c)
-			data_tmp += value;
+			data_tmp = data_tmp + value;
 		else
 			data_tmp = value;
 	}
@@ -155,15 +155,9 @@ namespace Communicate_Map
 		const int rank_isend,
 		std::function<void(const std::tuple<Tkey0,Tkey1>&, const Tvalue&)> &func)
 	{
-//std::ofstream ofs("traverse_"+TO_STRING(std::this_thread::get_id()));
-//ofs<<__FILE__<<__LINE__<<std::endl;
 		for (const auto &dataA : data)
 			for (const auto &dataB : dataA.second)
-			{
-//ofs<<dataA.first<<"\t"<<dataB.first<<std::endl;
 				func (std::make_tuple(dataA.first,dataB.first), dataB.second);
-			}
-//ofs<<__FILE__<<__LINE__<<std::endl;
 	}
 
 
@@ -221,7 +215,7 @@ namespace Communicate_Map
 			if(!data)
 				data = std::move(data_local_A.second);
 			else
-				data += std::move(data_local_A.second);
+				data = data + std::move(data_local_A.second);
 		}
 	}
 	
@@ -238,7 +232,7 @@ namespace Communicate_Map
 				if(!data)
 					data = std::move(data_local_B.second);
 				else
-					data += std::move(data_local_B.second);
+					data = data + std::move(data_local_B.second);
 			}
 		}
 	}
@@ -258,7 +252,7 @@ namespace Communicate_Map
 					if(!data)
 						data = std::move(data_local_C.second);
 					else
-						data += std::move(data_local_C.second);
+						data = data + std::move(data_local_C.second);
 				}
 			}
 		}
