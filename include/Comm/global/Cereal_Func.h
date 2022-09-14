@@ -6,6 +6,7 @@
 #pragma once
 
 #include <mpi.h>
+#include <sstream>
 
 namespace Cereal_Func
 {
