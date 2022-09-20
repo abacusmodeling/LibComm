@@ -16,10 +16,10 @@
 
 namespace Communicate_Map_Test
 {
-	void test_transmission()
+	void test_transmission(int argc, char *argv[])
 	{
 		int provided;
-		MPI_Init_thread( NULL, NULL, MPI_THREAD_MULTIPLE, &provided );
+		MPI_Init_thread( &argc, &argv, MPI_THREAD_MULTIPLE, &provided );
 
 		std::map<int,std::map<int,double>> m_in;
 		std::map<int,std::map<int,double>> m_out;

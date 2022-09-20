@@ -46,7 +46,7 @@ namespace Cereal_Func
 	{
 		MPI_Status status;
 		MPI_CHECK( MPI_Probe( MPI_ANY_SOURCE, MPI_ANY_TAG, mpi_comm, &status ) );
-		int size;	MPI_Get_count( &status, MPI_CHAR, &size );
+		int size;	MPI_CHECK( MPI_Get_count( &status, MPI_CHAR, &size ) );
 		std::vector<char> c(size);                                                             
 		MPI_CHECK( MPI_Recv( c.data(), size, MPI_CHAR, status.MPI_SOURCE, status.MPI_TAG, mpi_comm, MPI_STATUS_IGNORE ) );     
 		std::stringstream ss;  

@@ -5,22 +5,27 @@
 
 #pragma once
 
-#include <mpi.h>
-#include <map>
-#include <tuple>
-#include <fstream>
 #include "Comm/Comm_Assemble/Comm_Assemble.h"
 #include "Comm/example/Communicate_Map-1.h"
 #include "Comm/example/Communicate_Map-2.h"
 #include "Comm/global/MPI_Wrapper.h"
 #include "unittests/print_stl.h"
 
+#include <mpi.h>
+#include <map>
+#include <tuple>
+#include <fstream>
+#include <stdexcept>
+#include <string>
+
+#define MPI_CHECK(x) if((x)!=MPI_SUCCESS)	throw std::runtime_error(std::string(__FILE__)+" line "+std::to_string(__LINE__));
+
 namespace Communicate_Map_Test
 {
-	void test_assemble()
+	void test_assemble(int argc, char *argv[])
 	{
 		int provided;
-		MPI_Init_thread( NULL, NULL, MPI_THREAD_MULTIPLE, &provided );
+		MPI_CHECK( MPI_Init_thread( &argc, &argv, MPI_THREAD_MULTIPLE, &provided ) );
 		assert(MPI_Wrapper::mpi_get_size(MPI_COMM_WORLD)==6);
 		const int rank_mine = MPI_Wrapper::mpi_get_rank(MPI_COMM_WORLD);
 
@@ -70,7 +75,7 @@ namespace Communicate_Map_Test
 		std::ofstream ofs_out("out_"+std::to_string(MPI_Wrapper::mpi_get_rank(MPI_COMM_WORLD)));
 		ofs_out<<m_out<<std::endl;
 		
-		MPI_Finalize();
+		MPI_CHECK( MPI_Finalize() );
 	}
 	/*
 	judge.s1 = {rank_mine/3};
@@ -92,5 +97,6 @@ namespace Communicate_Map_Test
 		rank 4:
 		rank 5:	[2][0]=5.6, [2][1]=11.2
 	*/
-
 }
+
+#undef MPI_CHECK

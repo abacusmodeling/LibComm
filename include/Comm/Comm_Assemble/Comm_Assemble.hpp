@@ -9,13 +9,13 @@
 
 template<typename Tkey, typename Tvalue, typename Tdatas_provide, typename Tkeys_require, typename Tdatas_require>
 Comm_Assemble<Tkey,Tvalue,Tdatas_provide,Tkeys_require,Tdatas_require>::Comm_Assemble(const MPI_Comm &mpi_comm_in)
-	:comm_keys(mpi_comm_in),
-	 comm_trans(mpi_comm_in),
-	 traverse_keys_provide(comm_keys.traverse_keys_provide),
+	:traverse_keys_provide(comm_keys.traverse_keys_provide),
 	 set_value_require(comm_trans.set_value_recv),
 	 flag_lock_set_value(comm_trans.flag_lock_set_value),
 	 init_datas_local(comm_trans.init_datas_local),
-	 add_datas(comm_trans.add_datas){}
+	 add_datas(comm_trans.add_datas),
+	 comm_keys(mpi_comm_in),
+	 comm_trans(mpi_comm_in){}
 
 template<typename Tkey, typename Tvalue, typename Tdatas_provide, typename Tkeys_require, typename Tdatas_require>
 void Comm_Assemble<Tkey,Tvalue,Tdatas_provide,Tkeys_require,Tdatas_require>::communicate(

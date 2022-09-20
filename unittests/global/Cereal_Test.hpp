@@ -17,9 +17,9 @@
 
 namespace Cereal_Test
 {
-	static void main()
+	static void main(int argc, char *argv[])
 	{
-		MPI_Init(NULL,NULL);
+		MPI_Init(&argc, &argv);
 		int rank_size;	MPI_Comm_size( MPI_COMM_WORLD, &rank_size );
 		int rank_mine;	MPI_Comm_rank( MPI_COMM_WORLD, &rank_mine );
 

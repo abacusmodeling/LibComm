@@ -146,7 +146,7 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::recv_data (
 	const MPI_Status &status_recv,
 	std::atomic_flag &lock_set_value)
 {
-	int size_mpi;	MPI_CHECK (MPI_Get_count (&status_recv, MPI_CHAR, &size_mpi));
+	int size_mpi;	MPI_CHECK( MPI_Get_count(&status_recv, MPI_CHAR, &size_mpi) );
 	std::vector<char> buffer_recv(size_mpi);
 	MPI_CHECK (MPI_Recv (buffer_recv.data(), size_mpi, MPI_CHAR, status_recv.MPI_SOURCE, status_recv.MPI_TAG, this->mpi_comm, MPI_STATUS_IGNORE));
 //	assert(status_recv.MPI_ERROR==MPI_SUCCESS);
