@@ -87,12 +87,16 @@ namespace Communicate_Map
 		Tvalue &&value,
 		std::map<Tkey,Tvalue> &data)
 	{
-		Tvalue &value_tmp = data[key];
-//		if (value_tmp.empty())
-		if (!value_tmp)
-			value_tmp = std::move(value);
+		auto ptr = data.find(key);
+		if(ptr==data.end())
+			data[key] = std::move(value);
 		else
-			value_tmp = value_tmp + std::move(value);
+			ptr->second = ptr->second + std::move(value);
+//		Tvalue &value_tmp = data[key];
+//		if (!value_tmp)
+//			value_tmp = std::move(value);
+//		else
+//			value_tmp = value_tmp + std::move(value);
 	}
 
 	template<typename Tkey0, typename Tkey1, typename Tvalue>
@@ -101,12 +105,12 @@ namespace Communicate_Map
 		Tvalue &&value,
 		std::map<Tkey0,std::map<Tkey1,Tvalue>> &data)
 	{
-		Tvalue &value_tmp = data[std::get<0>(key)][std::get<1>(key)];
-//		if (value_tmp.empty())
-		if (!value_tmp)
-			value_tmp = std::move(value);
-		else
-			value_tmp = value_tmp + std::move(value);
+		set_value_add(std::move(std::get<1>(key)), std::move(value), data[std::get<0>(key)]);
+//		Tvalue &value_tmp = data[std::get<0>(key)][std::get<1>(key)];
+//		if (!value_tmp)
+//			value_tmp = std::move(value);
+//		else
+//			value_tmp = value_tmp + std::move(value);
 	}
 	
 	template<typename Tkey0, typename Tkey1, typename Tkey2, typename Tvalue>
@@ -115,12 +119,12 @@ namespace Communicate_Map
 		Tvalue &&value,
 		std::map<Tkey0,std::map<Tkey1,std::map<Tkey2,Tvalue>>> &data)
 	{
-		Tvalue &value_tmp = data[std::get<0>(key)][std::get<1>(key)][std::get<2>(key)];
-//		if (value_tmp.empty())
-		if (!value_tmp)
-			value_tmp = std::move(value);
-		else
-			value_tmp = value_tmp + std::move(value);
+		set_value_add(std::move(std::get<2>(key)), std::move(value), data[std::get<0>(key)][std::get<1>(key)]);
+//		Tvalue &value_tmp = data[std::get<0>(key)][std::get<1>(key)][std::get<2>(key)];
+//		if (!value_tmp)
+//			value_tmp = std::move(value);
+//		else
+//			value_tmp = value_tmp + std::move(value);
 	}	
 
 	/*
@@ -149,6 +153,16 @@ namespace Communicate_Map
 	*/
 
 	// 无筛选，全部遍历
+	template<typename Tkey, typename Tvalue>
+	void traverse_datas_all(
+		const std::map<Tkey,Tvalue> &data,
+		const int rank_isend,
+		std::function<void(const Tkey&, const Tvalue&)> &func)
+	{
+		for (const auto &item : data)
+			func (item.first, item.second);
+	}
+
 	template<typename Tkey0, typename Tkey1, typename Tvalue>
 	void traverse_datas_all(
 		const std::map<Tkey0,std::map<Tkey1,Tvalue>> &data,
@@ -209,14 +223,50 @@ namespace Communicate_Map
 		std::map<Tkey,Tvalue> &&data_local,
 		std::map<Tkey,Tvalue> &data_recv)
 	{
-		for (auto &&data_local_A : data_local)
+		auto ptr_local=data_local.begin();
+		auto ptr_recv=data_recv.begin();
+		for(; ptr_local!=data_local.end() && ptr_recv!=data_recv.end(); )
 		{
-			Tvalue &data = data_recv[std::move(data_local_A.first)];
-			if(!data)
-				data = std::move(data_local_A.second);
+			const Tkey &key_local = ptr_local->first;
+			const Tkey &key_recv = ptr_recv->first;
+			if(key_local == key_recv)
+			{
+				ptr_recv->second = ptr_recv->second + std::move(ptr_local->second);
+				++ptr_local;
+				++ptr_recv;
+			}
+			else if(key_local < key_recv)
+			{
+				ptr_recv = data_recv.emplace_hint(ptr_recv, key_local, std::move(ptr_local->second));
+				++ptr_local;
+			}
 			else
-				data = data + std::move(data_local_A.second);
+			{
+				++ptr_recv;
+			}
 		}
+		for(; ptr_local!=data_local.end(); ++ptr_local)
+		{
+			ptr_recv = data_recv.emplace_hint(ptr_recv, ptr_local->first, std::move(ptr_local->second));
+		}
+
+//		for (auto &&data_local_A : data_local)
+//		{
+//			auto ptr = data_recv.find(data_local_A.first);
+//			if(ptr==data_recv.end())
+//				data_recv[data_local_A.first] = std::move(data_local_A.second);
+//			else
+//				ptr->second = ptr->second + std::move(data_local_A.second);
+//		}
+
+//		for (auto &&data_local_A : data_local)
+//		{
+//			Tvalue &data = data_recv[std::move(data_local_A.first)];
+//			if(!data)
+//				data = std::move(data_local_A.second);
+//			else
+//				data = data + std::move(data_local_A.second);
+//		}
 	}
 	
 	template<typename Tkey0, typename Tkey1, typename Tvalue>
@@ -224,37 +274,64 @@ namespace Communicate_Map
 		std::map<Tkey0,std::map<Tkey1,Tvalue>> &&data_local,
 		std::map<Tkey0,std::map<Tkey1,Tvalue>> &data_recv)
 	{
-		for (auto &&data_local_A : data_local)
+		auto ptr_local=data_local.begin();
+		auto ptr_recv=data_recv.begin();
+		for(; ptr_local!=data_local.end() && ptr_recv!=data_recv.end(); )
 		{
-			for (auto &&data_local_B : data_local_A.second)
+			const Tkey0 &key_local = ptr_local->first;
+			const Tkey0 &key_recv = ptr_recv->first;
+			if(key_local == key_recv)
 			{
-				Tvalue &data = data_recv[std::move(data_local_A.first)][std::move(data_local_B.first)];
-				if(!data)
-					data = std::move(data_local_B.second);
-				else
-					data = data + std::move(data_local_B.second);
+				add_datas(std::move(ptr_local->second), ptr_recv->second);
+				++ptr_local;
+				++ptr_recv;
+			}
+			else if(key_local < key_recv)
+			{
+				ptr_recv = data_recv.emplace_hint(ptr_recv, key_local, std::move(ptr_local->second));
+				++ptr_local;
+			}
+			else
+			{
+				++ptr_recv;
 			}
 		}
+		for(; ptr_local!=data_local.end(); ++ptr_local)
+		{
+			ptr_recv = data_recv.emplace_hint(ptr_recv, ptr_local->first, std::move(ptr_local->second));
+		}
+
+//		for (auto &&data_local_A : data_local)
+//		{
+//			for (auto &&data_local_B : data_local_A.second)
+//			{
+//				Tvalue &data = data_recv[std::move(data_local_A.first)][std::move(data_local_B.first)];
+//				if(!data)
+//					data = std::move(data_local_B.second);
+//				else
+//					data = data + std::move(data_local_B.second);
+//			}
+//		}
 	}
 	
-	template<typename Tkey0, typename Tkey1, typename Tkey2, typename Tvalue>
-	void add_datas(
-		std::map<Tkey0,std::map<Tkey1,std::map<Tkey2,Tvalue>>> &&data_local,
-		std::map<Tkey0,std::map<Tkey1,std::map<Tkey2,Tvalue>>> &data_recv)
-	{
-		for (auto &&data_local_A : data_local)
-		{
-			for (auto &&data_local_B : data_local_A.second)
-			{
-				for (auto &&data_local_C : data_local_B.second)
-				{
-					Tvalue &data = data_recv[std::move(data_local_A.first)][std::move(data_local_B.first)][std::move(data_local_C.first)];
-					if(!data)
-						data = std::move(data_local_C.second);
-					else
-						data = data + std::move(data_local_C.second);
-				}
-			}
-		}
-	}
+//	template<typename Tkey0, typename Tkey1, typename Tkey2, typename Tvalue>
+//	void add_datas(
+//		std::map<Tkey0,std::map<Tkey1,std::map<Tkey2,Tvalue>>> &&data_local,
+//		std::map<Tkey0,std::map<Tkey1,std::map<Tkey2,Tvalue>>> &data_recv)
+//	{
+//		for (auto &&data_local_A : data_local)
+//		{
+//			for (auto &&data_local_B : data_local_A.second)
+//			{
+//				for (auto &&data_local_C : data_local_B.second)
+//				{
+//					Tvalue &data = data_recv[std::move(data_local_A.first)][std::move(data_local_B.first)][std::move(data_local_C.first)];
+//					if(!data)
+//						data = std::move(data_local_C.second);
+//					else
+//						data = data + std::move(data_local_C.second);
+//				}
+//			}
+//		}
+//	}
 }
