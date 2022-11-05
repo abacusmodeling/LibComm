@@ -7,6 +7,9 @@
 
 #include <set>
 
+namespace Comm
+{
+
 namespace Communicate_Set
 {
 	template<typename Tkey>
@@ -17,5 +20,7 @@ namespace Communicate_Set
 		for(const Tkey &key : keys)
 			func(key);
 	}
+
+}
 
 }

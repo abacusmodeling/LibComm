@@ -12,6 +12,8 @@
 #include <mpi.h>
 #include <functional>
 
+namespace Comm
+{
 
 template<typename Tkey, typename Tvalue, typename Tdatas_provide, typename Tkeys_require, typename Tdatas_require>
 class Comm_Assemble
@@ -20,7 +22,7 @@ public:
 	Comm_Assemble(const MPI_Comm &mpi_comm_in);
 
 	std::function<
-		void( 
+		void(
 			const Tdatas_provide &keys_provide_mine,
 			std::function<void(const Tkey&)> &func)>
 		&traverse_keys_provide;
@@ -56,5 +58,7 @@ private:
 	Comm_Keys_31_SenderTraversal<Tkey,Tdatas_provide,Tkeys_require> comm_keys;
 	Comm_Trans<Tkey,Tvalue,Tdatas_provide,Tdatas_require> comm_trans;
 };
+
+}
 
 #include "Comm_Assemble.hpp"

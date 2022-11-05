@@ -14,6 +14,9 @@
 
 #define MPI_CHECK(x) if((x)!=MPI_SUCCESS)	throw std::runtime_error(std::string(__FILE__)+" line "+std::to_string(__LINE__));
 
+namespace Comm
+{
+
 namespace Cereal_Func
 {
 	template<typename... Ts>
@@ -39,7 +42,7 @@ namespace Cereal_Func
 		}
 		MPI_CHECK( MPI_Isend( ss.str().c_str(), ss.str().size(), MPI_CHAR, rank_recv, tag, mpi_comm, &request ) );
 	}
-	
+
 	template<typename... Ts>
 	MPI_Status mpi_recv(const MPI_Comm &mpi_comm,
 		Ts&... data)
@@ -47,9 +50,9 @@ namespace Cereal_Func
 		MPI_Status status;
 		MPI_CHECK( MPI_Probe( MPI_ANY_SOURCE, MPI_ANY_TAG, mpi_comm, &status ) );
 		int size;	MPI_CHECK( MPI_Get_count( &status, MPI_CHAR, &size ) );
-		std::vector<char> c(size);                                                             
-		MPI_CHECK( MPI_Recv( c.data(), size, MPI_CHAR, status.MPI_SOURCE, status.MPI_TAG, mpi_comm, MPI_STATUS_IGNORE ) );     
-		std::stringstream ss;  
+		std::vector<char> c(size);
+		MPI_CHECK( MPI_Recv( c.data(), size, MPI_CHAR, status.MPI_SOURCE, status.MPI_TAG, mpi_comm, MPI_STATUS_IGNORE ) );
+		std::stringstream ss;
 		ss.rdbuf()->pubsetbuf(c.data(), size);
 		{
 			cereal::BinaryInputArchive ar(ss);
@@ -57,6 +60,8 @@ namespace Cereal_Func
 		}
 		return status;
 	}
+}
+
 }
 
 #undef MPI_CHECK

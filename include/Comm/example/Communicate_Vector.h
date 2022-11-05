@@ -7,6 +7,9 @@
 
 #include <vector>
 
+namespace Comm
+{
+
 namespace Communicate_Vector
 {
 	template<typename Tkey>
@@ -17,4 +20,6 @@ namespace Communicate_Vector
 		for(const Tkey &key : keys)
 			func(key);
 	}
+}
+
 }

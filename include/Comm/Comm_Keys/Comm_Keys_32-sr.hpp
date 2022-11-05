@@ -13,6 +13,9 @@
 
 #define MPI_CHECK(x) if((x)!=MPI_SUCCESS)	throw std::runtime_error(std::string(__FILE__)+" line "+std::to_string(__LINE__));
 
+namespace Comm
+{
+
 template<typename Tkey, typename Tkeys_provide, typename Tkeys_require>
 Comm_Keys_32<Tkey,Tkeys_provide,Tkeys_require>::Comm_Keys_32(
 	const MPI_Comm &mpi_comm_in)
@@ -190,5 +193,6 @@ std::vector<Tkey> Comm_Keys_32_SenderJudge<Tkey,Tkeys_provide,Tkeys_require>::ch
 	return keys_provide_mine_vec;
 }
 
+}
 
 #undef MPI_CHECK

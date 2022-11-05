@@ -16,6 +16,8 @@
 
 #define MPI_CHECK(x) if((x)!=MPI_SUCCESS)	throw std::runtime_error(std::string(__FILE__)+" line "+std::to_string(__LINE__));
 
+namespace Comm
+{
 
 template<typename Tkey, typename Tkeys_provide, typename Tkeys_require>
 Comm_Keys_31<Tkey,Tkeys_provide,Tkeys_require>::Comm_Keys_31(
@@ -64,7 +66,7 @@ std::vector<std::vector<Tkey>> Comm_Keys_31<Tkey,Tkeys_provide,Tkeys_require>::t
 	for(int rank_require=0; rank_require<this->rank_size; ++rank_require)
 	{
 		Tkeys_require keys_require;
-		std::stringstream ss_recv;  
+		std::stringstream ss_recv;
 		ss_recv.rdbuf()->pubsetbuf(buffer_recv.data()+sss_displs[rank_require], sss_size[rank_require]);
 		{
 			cereal::BinaryInputArchive ar(ss_recv);
@@ -72,7 +74,7 @@ std::vector<std::vector<Tkey>> Comm_Keys_31<Tkey,Tkeys_provide,Tkeys_require>::t
 		}
 
 		this->intersection(keys_provide_mine, keys_require, keys_trans_list[rank_require]);
-	}		
+	}
 
 	return keys_trans_list;
 }
@@ -93,7 +95,7 @@ void Comm_Keys_31<Tkey,Tkeys_provide,Tkeys_require>::send_keys_require_mine(
 
 	sss_size.resize(this->rank_size);
 	const int ss_size = ss_send.str().size();
-	MPI_Allgather( &ss_size, 1, MPI_INT, sss_size.data(), 1, MPI_INT, this->mpi_comm );				
+	MPI_Allgather( &ss_size, 1, MPI_INT, sss_size.data(), 1, MPI_INT, this->mpi_comm );
 
 	sss_displs.resize(this->rank_size);
 	sss_displs[0] = 0;
@@ -130,8 +132,9 @@ void Comm_Keys_31_SenderJudge<Tkey,Tkeys_provide,Tkeys_require>::intersection(
 		if(keys_provide_mine.judge(key) && keys_require.judge(key))
 			keys_trans.push_back(key);
 	};
-	this->traverse_keys_all(inter);	
+	this->traverse_keys_all(inter);
 }
 
+}
 
 #undef MPI_CHECK

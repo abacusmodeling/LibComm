@@ -17,6 +17,9 @@
 
 #define MPI_CHECK(x) if((x)!=MPI_SUCCESS)	throw std::runtime_error(std::string(__FILE__)+" line "+std::to_string(__LINE__));
 
+namespace Comm
+{
+
 template<typename Tkey, typename Tvalue, typename Tdatas_isend, typename Tdatas_recv>
 Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::Comm_Trans(const MPI_Comm &mpi_comm_in)
 	:mpi_comm(mpi_comm_in)
@@ -115,7 +118,7 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::isend_data(
 	const Tdatas_isend &datas_isend,
 	std::string &str_isend,
 	MPI_Request &request_isend) const
-{	
+{
 	std::stringstream ss_isend;
 	{
 		cereal::BinaryOutputArchive oar(ss_isend);
@@ -151,7 +154,7 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::recv_data (
 	MPI_CHECK (MPI_Recv (buffer_recv.data(), size_mpi, MPI_CHAR, status_recv.MPI_SOURCE, status_recv.MPI_TAG, this->mpi_comm, MPI_STATUS_IGNORE));
 //	assert(status_recv.MPI_ERROR==MPI_SUCCESS);
 
-	std::stringstream ss_recv;  
+	std::stringstream ss_recv;
 	ss_recv.rdbuf()->pubsetbuf(buffer_recv.data(), size_mpi);
 
 	{
@@ -208,7 +211,7 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::recv_data (
 			}
 			while (lock_set_value.test_and_set(std::memory_order_seq_cst)) std::this_thread::yield();
 			this->add_datas (std::move(datas_local), datas_recv);
-			lock_set_value.clear(std::memory_order_seq_cst);	
+			lock_set_value.clear(std::memory_order_seq_cst);
 		}
 		else
 		{
@@ -237,7 +240,7 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::post_process(
 		while (rank_isend_free_tmp < this->comm_size)
 		{
 			const int rank_isend_free = (this->rank_mine+rank_isend_free_tmp)%this->comm_size;
-			if (futures_isend[rank_isend_free].valid() 
+			if (futures_isend[rank_isend_free].valid()
 				&& futures_isend[rank_isend_free].wait_for(std::chrono::seconds(0)) == std::future_status::ready)
 			{
 				int flag_finish=0;
@@ -265,9 +268,11 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::post_process(
 			}
 			else{ break; }
 		}
-		
+
 		std::this_thread::yield();
 	}
+}
+
 }
 
 #undef MPI_CHECK
@@ -275,7 +280,7 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::post_process(
 /*
 get_send_keys()
 {
-	
+
 	if(unique)
 	{
 		for(irank in all)

@@ -10,6 +10,9 @@
 #include <set>
 #include <cereal/archives/binary.hpp>
 
+namespace Comm
+{
+
 namespace Communicate_Map
 {
 	template<typename Tkey, typename Tvalue>
@@ -103,4 +106,6 @@ namespace Communicate_Map
 		std::set<Tkey2> s2;
 		template <class Archive> void serialize( Archive & ar ){ ar(s0); ar(s1); ar(s2); }
 	};
+}
+
 }

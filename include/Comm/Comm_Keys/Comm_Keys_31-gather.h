@@ -9,6 +9,9 @@
 #include <functional>
 #include <mpi.h>
 
+namespace Comm
+{
+
 template<typename Tkey, typename Tkeys_provide, typename Tkeys_require>
 class Comm_Keys_31
 {
@@ -49,7 +52,7 @@ public:
 	Comm_Keys_31_SenderTraversal(const MPI_Comm &mpi_comm);
 
 	std::function<
-		void( 
+		void(
 			const Tkeys_provide &keys_provide_mine,
 			std::function<void(const Tkey&)> &func )>
 		traverse_keys_provide;
@@ -78,5 +81,7 @@ private:
 		const Tkeys_require &keys_require,
 		std::vector<Tkey> &keys_trans);
 };
+
+}
 
 #include "Comm_Keys_31-gather.hpp"

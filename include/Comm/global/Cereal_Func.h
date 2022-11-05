@@ -8,6 +8,9 @@
 #include <mpi.h>
 #include <sstream>
 
+namespace Comm
+{
+
 namespace Cereal_Func
 {
 	template<typename... Ts>
@@ -22,6 +25,8 @@ namespace Cereal_Func
 	template<typename... Ts>
 	MPI_Status mpi_recv(const MPI_Comm &mpi_comm,
 		Ts&... data);
+}
+
 }
 
 #include "Cereal_Func.hpp"

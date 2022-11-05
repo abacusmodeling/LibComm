@@ -10,6 +10,9 @@
 #include <mpi.h>
 #include <shared_mutex>
 
+namespace Comm
+{
+
 template<typename Tkey, typename Tkeys_provide, typename Tkeys_require>
 class Comm_Keys_32
 {
@@ -54,7 +57,7 @@ public:
 	Comm_Keys_32_SenderTraversal(const MPI_Comm &mpi_comm);
 
 	std::function<
-		void( 
+		void(
 			const Tkeys_provide &keys_provide_mine,
 			std::function<void(const Tkey&)> &func )>
 		traverse_keys_provide;
@@ -79,5 +82,7 @@ private:
 	std::vector<Tkey> change_keys_provide_mine(
 		const Tkeys_provide &keys_provide_mine);
 };
+
+}
 
 #include "Comm_Keys_32-gather.hpp"

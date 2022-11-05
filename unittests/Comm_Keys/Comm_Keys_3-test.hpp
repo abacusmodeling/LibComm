@@ -29,8 +29,8 @@ namespace Comm_Keys_3_Test
 		Require_Judge()=default;
 		Require_Judge(const MPI_Comm &mpi_comm)
 		{
-			this->rank_size = MPI_Wrapper::mpi_get_rank(mpi_comm);
-			this->rank_mine = MPI_Wrapper::mpi_get_size(mpi_comm);
+			this->rank_size = Comm::MPI_Wrapper::mpi_get_rank(mpi_comm);
+			this->rank_mine = Comm::MPI_Wrapper::mpi_get_size(mpi_comm);
 		}
 		bool judge(const int &key) const
 		{
@@ -48,7 +48,7 @@ namespace Comm_Keys_3_Test
 		Provider_Judge()=default;
 		Provider_Judge(const MPI_Comm &mpi_comm)
 		{
-			this->rank_mine = MPI_Wrapper::mpi_get_rank(mpi_comm);
+			this->rank_mine = Comm::MPI_Wrapper::mpi_get_rank(mpi_comm);
 			if(rank_mine==0)
 				v = {2,3,5,7,9};
 			else if(rank_mine==1)
@@ -76,7 +76,7 @@ namespace Comm_Keys_3_Test
 		int mpi_thread_provide;
 		MPI_CHECK( MPI_Init_thread( &argc, &argv, MPI_THREAD_MULTIPLE, &mpi_thread_provide ) );
 		assert(mpi_thread_provide==MPI_THREAD_MULTIPLE);
-		const int rank_mine = MPI_Wrapper::mpi_get_rank(MPI_COMM_WORLD);
+		const int rank_mine = Comm::MPI_Wrapper::mpi_get_rank(MPI_COMM_WORLD);
 
 		std::set<int> v;
 		if(rank_mine==0)
@@ -93,7 +93,7 @@ namespace Comm_Keys_3_Test
 
 		Require_Judge require_judge(MPI_COMM_WORLD);
 		T_Comm_Keys_31_SenderTraversal comm(MPI_COMM_WORLD);
-		comm.traverse_keys_provide = Communicate_Set::traverse_keys<int>;
+		comm.traverse_keys_provide = Comm::Communicate_Set::traverse_keys<int>;
 		std::vector<std::vector<int>> keys_trans_list = comm.trans(v, require_judge);
 
 		ofs<<"keys_trans_list\t"<<keys_trans_list<<std::endl;
@@ -108,8 +108,8 @@ namespace Comm_Keys_3_Test
 		int mpi_thread_provide;
 		MPI_CHECK( MPI_Init_thread( &argc, &argv, MPI_THREAD_MULTIPLE, &mpi_thread_provide ) );
 		assert(mpi_thread_provide==MPI_THREAD_MULTIPLE);
-		const int rank_mine = MPI_Wrapper::mpi_get_rank(MPI_COMM_WORLD);
-		
+		const int rank_mine = Comm::MPI_Wrapper::mpi_get_rank(MPI_COMM_WORLD);
+
 		std::ofstream ofs("out."+std::to_string(rank_mine));
 
 		Provider_Judge provider_judge(MPI_COMM_WORLD);
@@ -124,10 +124,10 @@ namespace Comm_Keys_3_Test
 		MPI_CHECK( MPI_Finalize() );
 	}
 
-	static void main1_31(int argc, char *argv[]){ main1< Comm_Keys_31_SenderTraversal<int, std::set<int>, Require_Judge> > (argc,argv); }
-	static void main1_32(int argc, char *argv[]){ main1< Comm_Keys_32_SenderTraversal<int, std::set<int>, Require_Judge> > (argc,argv); }
-	static void main2_31(int argc, char *argv[]){ main2< Comm_Keys_31_SenderJudge<int, Provider_Judge, Require_Judge> > (argc,argv); }
-	static void main2_32(int argc, char *argv[]){ main2< Comm_Keys_32_SenderJudge<int, Provider_Judge, Require_Judge> > (argc,argv); }
+	static void main1_31(int argc, char *argv[]){ main1< Comm::Comm_Keys_31_SenderTraversal<int, std::set<int>, Require_Judge> > (argc,argv); }
+	static void main1_32(int argc, char *argv[]){ main1< Comm::Comm_Keys_32_SenderTraversal<int, std::set<int>, Require_Judge> > (argc,argv); }
+	static void main2_31(int argc, char *argv[]){ main2< Comm::Comm_Keys_31_SenderJudge<int, Provider_Judge, Require_Judge> > (argc,argv); }
+	static void main2_32(int argc, char *argv[]){ main2< Comm::Comm_Keys_32_SenderJudge<int, Provider_Judge, Require_Judge> > (argc,argv); }
 
 	static void test_all(int argc, char *argv[])
 	{

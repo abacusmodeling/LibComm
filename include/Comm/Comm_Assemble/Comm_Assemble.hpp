@@ -7,6 +7,9 @@
 
 #include "Comm_Assemble.h"
 
+namespace Comm
+{
+
 template<typename Tkey, typename Tvalue, typename Tdatas_provide, typename Tkeys_require, typename Tdatas_require>
 Comm_Assemble<Tkey,Tvalue,Tdatas_provide,Tkeys_require,Tdatas_require>::Comm_Assemble(const MPI_Comm &mpi_comm_in)
 	:traverse_keys_provide(comm_keys.traverse_keys_provide),
@@ -33,4 +36,6 @@ void Comm_Assemble<Tkey,Tvalue,Tdatas_provide,Tkeys_require,Tdatas_require>::com
 			func(key, this->get_value_provide(key, datas_provide));
 	};
 	comm_trans.communicate(datas_provide, datas_require);
+}
+
 }

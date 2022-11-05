@@ -16,6 +16,9 @@
 
 #define MPI_CHECK(x) if((x)!=MPI_SUCCESS)	throw std::runtime_error(std::string(__FILE__)+" line "+std::to_string(__LINE__));
 
+namespace Comm
+{
+
 template<typename Tkey, typename Tkeys_provide, typename Tkeys_require>
 Comm_Keys_31<Tkey,Tkeys_provide,Tkeys_require>::Comm_Keys_31(
 	const MPI_Comm &mpi_comm_in)
@@ -70,7 +73,7 @@ std::vector<std::vector<Tkey>> Comm_Keys_31<Tkey,Tkeys_provide,Tkeys_require>::t
 	--unfinish_rank;
 
 	while(unfinish_rank)
-	{	
+	{
 		int flag_iprobe = false;
 		MPI_Status status;
 		MPI_CHECK( MPI_Iprobe( MPI_ANY_SOURCE, MPI_ANY_TAG, this->mpi_comm, &flag_iprobe, &status ) );
@@ -169,8 +172,9 @@ void Comm_Keys_31_SenderJudge<Tkey,Tkeys_provide,Tkeys_require>::intersection(
 		if(keys_provide_mine.judge(key) && keys_require.judge(key))
 			keys_trans.push_back(key);
 	};
-	this->traverse_keys_all(inter);	
+	this->traverse_keys_all(inter);
 }
 
+}
 
 #undef MPI_CHECK

@@ -9,6 +9,9 @@
 #include <tuple>
 #include <functional>
 
+namespace Comm
+{
+
 namespace Communicate_Map
 {
 	/*
@@ -112,7 +115,7 @@ namespace Communicate_Map
 //		else
 //			value_tmp = value_tmp + std::move(value);
 	}
-	
+
 	template<typename Tkey0, typename Tkey1, typename Tkey2, typename Tvalue>
 	void set_value_add(
 		std::tuple<Tkey0,Tkey1,Tkey2> &&key,
@@ -125,7 +128,7 @@ namespace Communicate_Map
 //			value_tmp = std::move(value);
 //		else
 //			value_tmp = value_tmp + std::move(value);
-	}	
+	}
 
 	/*
 	// 等于
@@ -204,20 +207,20 @@ namespace Communicate_Map
 	{
 		return std::map<Tkey,Tvalue>();
 	}
-	
+
 	template<typename Tkey0, typename Tkey1, typename Tvalue>
 	std::map<Tkey0,std::map<Tkey1,Tvalue>> init_datas_local(const int rank_recv)
 	{
 		return std::map<Tkey0,std::map<Tkey1,Tvalue>>();
 	}
-	
+
 	template<typename Tkey0, typename Tkey1, typename Tkey2, typename Tvalue>
 	std::map<Tkey0,std::map<Tkey1,std::map<Tkey2,Tvalue>>> init_datas_local(const int rank_recv)
 	{
 		return std::map<Tkey0,std::map<Tkey1,std::map<Tkey2,Tvalue>>>();
 	}
 
-	
+
 	template<typename Tkey, typename Tvalue>
 	void add_datas(
 		std::map<Tkey,Tvalue> &&data_local,
@@ -268,7 +271,7 @@ namespace Communicate_Map
 //				data = data + std::move(data_local_A.second);
 //		}
 	}
-	
+
 	template<typename Tkey0, typename Tkey1, typename Tvalue>
 	void add_datas(
 		std::map<Tkey0,std::map<Tkey1,Tvalue>> &&data_local,
@@ -313,7 +316,7 @@ namespace Communicate_Map
 //			}
 //		}
 	}
-	
+
 //	template<typename Tkey0, typename Tkey1, typename Tkey2, typename Tvalue>
 //	void add_datas(
 //		std::map<Tkey0,std::map<Tkey1,std::map<Tkey2,Tvalue>>> &&data_local,
@@ -334,4 +337,6 @@ namespace Communicate_Map
 //			}
 //		}
 //	}
+}
+
 }
