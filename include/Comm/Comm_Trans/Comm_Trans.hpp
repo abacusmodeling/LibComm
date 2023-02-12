@@ -65,7 +65,6 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::communicate(
 	// initialization
 	int rank_isend_tmp = 0;
 	int rank_recv_working = -1;
-	int tag_recv_working = -1;
 
 	std::vector<MPI_Request> requests_isend(comm_size);
 	std::vector<std::string> strs_isend(comm_size);
@@ -91,21 +90,14 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::communicate(
 
 		int flag_iprobe=0;
 		MPI_Status status_recv;
-		MPI_CHECK (MPI_Iprobe (MPI_ANY_SOURCE, MPI_ANY_TAG, this->mpi_comm, &flag_iprobe, &status_recv));
-//		assert(status_recv.MPI_ERROR==MPI_SUCCESS);
-		if (flag_iprobe
-			&& (rank_recv_working!=status_recv.MPI_SOURCE || tag_recv_working!=status_recv.MPI_TAG))
+		MPI_Message message_recv;
+		MPI_CHECK (MPI_Improbe(MPI_ANY_SOURCE, Comm_Trans::tag_data, this->mpi_comm, &flag_iprobe, &message_recv, &status_recv));
+		if (flag_iprobe && rank_recv_working!=status_recv.MPI_SOURCE)
 		{
-			if (status_recv.MPI_TAG==Comm_Trans::tag_data)
-			{
-				futures_recv[status_recv.MPI_SOURCE] = std::async (std::launch::async,
-					&Comm_Trans::recv_data, this,
-					std::ref(datas_recv), std::cref(status_recv), std::ref(lock_set_value));
-			}
-			else
-				throw std::invalid_argument("MPI_Iprobe from rank "+std::to_string(status_recv.MPI_TAG)+" tag "+std::to_string(status_recv.MPI_SOURCE));
+			futures_recv[status_recv.MPI_SOURCE] = std::async (std::launch::async,
+				&Comm_Trans::recv_data, this,
+				std::ref(datas_recv), status_recv, message_recv, std::ref(lock_set_value));
 			rank_recv_working = status_recv.MPI_SOURCE;
-			tag_recv_working  = status_recv.MPI_TAG;
 		}
 	}
 	future_post_process.get();
@@ -146,13 +138,13 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::isend_data(
 template<typename Tkey, typename Tvalue, typename Tdatas_isend, typename Tdatas_recv>
 void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::recv_data (
 	Tdatas_recv &datas_recv,
-	const MPI_Status &status_recv,
+	const MPI_Status status_recv,
+	MPI_Message message_recv,
 	std::atomic_flag &lock_set_value)
 {
 	int size_mpi;	MPI_CHECK( MPI_Get_count(&status_recv, MPI_CHAR, &size_mpi) );
 	std::vector<char> buffer_recv(size_mpi);
-	MPI_CHECK (MPI_Recv (buffer_recv.data(), size_mpi, MPI_CHAR, status_recv.MPI_SOURCE, status_recv.MPI_TAG, this->mpi_comm, MPI_STATUS_IGNORE));
-//	assert(status_recv.MPI_ERROR==MPI_SUCCESS);
+	MPI_CHECK (MPI_Mrecv(buffer_recv.data(), size_mpi, MPI_CHAR, &message_recv, MPI_STATUS_IGNORE ));
 
 	std::stringstream ss_recv;
 	ss_recv.rdbuf()->pubsetbuf(buffer_recv.data(), size_mpi);
