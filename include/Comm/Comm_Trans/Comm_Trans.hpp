@@ -130,7 +130,11 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::isend_data(
 		oar(size_item);
 	} // end cereal::BinaryOutputArchive
 	str_isend = std::move(ss_isend.str());
+#if MPI_VERSION>=4
+	MPI_CHECK (MPI_Isend_c (str_isend.c_str(), str_isend.size(), MPI_CHAR, rank_isend, Comm_Trans::tag_data, this->mpi_comm, &request_isend));
+#else
 	MPI_CHECK (MPI_Isend (str_isend.c_str(), str_isend.size(), MPI_CHAR, rank_isend, Comm_Trans::tag_data, this->mpi_comm, &request_isend));
+#endif
 }
 
 
@@ -142,9 +146,15 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::recv_data (
 	MPI_Message message_recv,
 	std::atomic_flag &lock_set_value)
 {
-	int size_mpi;	MPI_CHECK( MPI_Get_count(&status_recv, MPI_CHAR, &size_mpi) );
+#if MPI_VERSION>=4
+	MPI_Count size_mpi;		MPI_CHECK( MPI_Get_count_c(&status_recv, MPI_CHAR, &size_mpi) );
 	std::vector<char> buffer_recv(size_mpi);
-	MPI_CHECK (MPI_Mrecv(buffer_recv.data(), size_mpi, MPI_CHAR, &message_recv, MPI_STATUS_IGNORE ));
+	MPI_CHECK (MPI_Mrecv_c (buffer_recv.data(), size_mpi, MPI_CHAR, &message_recv, MPI_STATUS_IGNORE));
+#else
+	int size_mpi;			MPI_CHECK( MPI_Get_count  (&status_recv, MPI_CHAR, &size_mpi) );
+	std::vector<char> buffer_recv(size_mpi);
+	MPI_CHECK (MPI_Mrecv   (buffer_recv.data(), size_mpi, MPI_CHAR, &message_recv, MPI_STATUS_IGNORE));
+#endif
 
 	std::stringstream ss_recv;
 	ss_recv.rdbuf()->pubsetbuf(buffer_recv.data(), size_mpi);

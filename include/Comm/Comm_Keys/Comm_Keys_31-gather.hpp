@@ -56,8 +56,13 @@ std::vector<std::vector<Tkey>> Comm_Keys_31<Tkey,Tkeys_provide,Tkeys_require>::t
 {
 	std::vector<std::vector<Tkey>> keys_trans_list(this->rank_size);
 
+#if MPI_VERSION>=4
+	std::vector<MPI_Count> sss_size;
+	std::vector<MPI_Aint> sss_displs;
+#else
 	std::vector<int> sss_size;
 	std::vector<int> sss_displs;
+#endif
 	std::vector<char> buffer_recv;
 	this->send_keys_require_mine( keys_require_mine,
 		sss_size, sss_displs, buffer_recv);
@@ -80,12 +85,21 @@ std::vector<std::vector<Tkey>> Comm_Keys_31<Tkey,Tkeys_provide,Tkeys_require>::t
 }
 
 
+#if MPI_VERSION>=4
+template<typename Tkey, typename Tkeys_provide, typename Tkeys_require>
+void Comm_Keys_31<Tkey,Tkeys_provide,Tkeys_require>::send_keys_require_mine(
+	const Tkeys_require &keys_require_mine,
+	std::vector<MPI_Count> &sss_size,
+	std::vector<MPI_Aint> &sss_displs,
+	std::vector<char> &buffer_recv)
+#else
 template<typename Tkey, typename Tkeys_provide, typename Tkeys_require>
 void Comm_Keys_31<Tkey,Tkeys_provide,Tkeys_require>::send_keys_require_mine(
 	const Tkeys_require &keys_require_mine,
 	std::vector<int> &sss_size,
 	std::vector<int> &sss_displs,
 	std::vector<char> &buffer_recv)
+#endif
 {
 	std::stringstream ss_send;
 	{
@@ -94,8 +108,13 @@ void Comm_Keys_31<Tkey,Tkeys_provide,Tkeys_require>::send_keys_require_mine(
 	}
 
 	sss_size.resize(this->rank_size);
+#if MPI_VERSION>=4
+	const MPI_Count ss_size = ss_send.str().size();
+	MPI_CHECK( MPI_Allgather( &ss_size, 1, MPI_COUNT, sss_size.data(), 1, MPI_COUNT, this->mpi_comm ) );
+#else
 	const int ss_size = ss_send.str().size();
-	MPI_Allgather( &ss_size, 1, MPI_INT, sss_size.data(), 1, MPI_INT, this->mpi_comm );
+	MPI_CHECK( MPI_Allgather( &ss_size, 1, MPI_INT, sss_size.data(), 1, MPI_INT, this->mpi_comm ) );
+#endif
 
 	sss_displs.resize(this->rank_size);
 	sss_displs[0] = 0;
@@ -103,7 +122,11 @@ void Comm_Keys_31<Tkey,Tkeys_provide,Tkeys_require>::send_keys_require_mine(
 		sss_displs[i] = sss_displs[i-1] + sss_size[i-1];
 
 	buffer_recv.resize(sss_displs.back() + sss_size.back());
-	MPI_Allgatherv( ss_send.str().c_str(), ss_send.str().size(), MPI_CHAR, buffer_recv.data(), sss_size.data(), sss_displs.data(), MPI_CHAR, this->mpi_comm );
+#if MPI_VERSION>=4
+	MPI_CHECK( MPI_Allgatherv_c( ss_send.str().c_str(), ss_send.str().size(), MPI_CHAR, buffer_recv.data(), sss_size.data(), sss_displs.data(), MPI_CHAR, this->mpi_comm ) );
+#else
+	MPI_CHECK( MPI_Allgatherv  ( ss_send.str().c_str(), ss_send.str().size(), MPI_CHAR, buffer_recv.data(), sss_size.data(), sss_displs.data(), MPI_CHAR, this->mpi_comm ) );
+#endif
 }
 
 template<typename Tkey, typename Tkeys_provide, typename Tkeys_require>

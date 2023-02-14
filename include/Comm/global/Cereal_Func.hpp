@@ -28,7 +28,11 @@ namespace Cereal_Func
 			cereal::BinaryOutputArchive ar(ss);
 			ar(data...);
 		}
-		MPI_CHECK( MPI_Send( ss.str().c_str(), ss.str().size(), MPI_CHAR, rank_recv, tag, mpi_comm ) );
+#if MPI_VERSION>=4
+		MPI_CHECK( MPI_Send_c( ss.str().c_str(), ss.str().size(), MPI_CHAR, rank_recv, tag, mpi_comm ) );
+#else
+		MPI_CHECK( MPI_Send  ( ss.str().c_str(), ss.str().size(), MPI_CHAR, rank_recv, tag, mpi_comm ) );
+#endif
 	}
 
 	template<typename... Ts>
@@ -40,7 +44,11 @@ namespace Cereal_Func
 			cereal::BinaryOutputArchive ar(ss);
 			ar(data...);
 		}
-		MPI_CHECK( MPI_Isend( ss.str().c_str(), ss.str().size(), MPI_CHAR, rank_recv, tag, mpi_comm, &request ) );
+#if MPI_VERSION>=4
+		MPI_CHECK( MPI_Isend_c( ss.str().c_str(), ss.str().size(), MPI_CHAR, rank_recv, tag, mpi_comm, &request ) );
+#else
+		MPI_CHECK( MPI_Isend  ( ss.str().c_str(), ss.str().size(), MPI_CHAR, rank_recv, tag, mpi_comm, &request ) );
+#endif
 	}
 
 	template<typename... Ts>
@@ -49,9 +57,17 @@ namespace Cereal_Func
 	{
 		MPI_Status status;
 		MPI_CHECK( MPI_Probe( MPI_ANY_SOURCE, MPI_ANY_TAG, mpi_comm, &status ) );
-		int size;	MPI_CHECK( MPI_Get_count( &status, MPI_CHAR, &size ) );
+
+#if MPI_VERSION>=4
+		MPI_Count size;		MPI_CHECK( MPI_Get_count_c( &status, MPI_CHAR, &size ) );
 		std::vector<char> c(size);
-		MPI_CHECK( MPI_Recv( c.data(), size, MPI_CHAR, status.MPI_SOURCE, status.MPI_TAG, mpi_comm, MPI_STATUS_IGNORE ) );
+		MPI_CHECK( MPI_Recv_c( c.data(), size, MPI_CHAR, status.MPI_SOURCE, status.MPI_TAG, mpi_comm, MPI_STATUS_IGNORE ) );
+#else
+		int size;			MPI_CHECK( MPI_Get_count  ( &status, MPI_CHAR, &size ) );
+		std::vector<char> c(size);
+		MPI_CHECK( MPI_Recv  ( c.data(), size, MPI_CHAR, status.MPI_SOURCE, status.MPI_TAG, mpi_comm, MPI_STATUS_IGNORE ) );
+#endif
+
 		std::stringstream ss;
 		ss.rdbuf()->pubsetbuf(c.data(), size);
 		{

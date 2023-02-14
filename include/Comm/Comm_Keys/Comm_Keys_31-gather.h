@@ -23,11 +23,19 @@ public:
 		const Tkeys_require &keys_require_mine);
 
 protected:
+#if MPI_VERSION>=4
+	void send_keys_require_mine(
+		const Tkeys_require &keys_require_mine,
+		std::vector<MPI_Count> &sss_size,
+		std::vector<MPI_Aint> &sss_displs,
+		std::vector<char> &buffer_recv);
+#else
 	void send_keys_require_mine(
 		const Tkeys_require &keys_require_mine,
 		std::vector<int> &sss_size,
 		std::vector<int> &sss_displs,
 		std::vector<char> &buffer_recv);
+#endif
 
 	//void recv_require_intersection(
 	//	const Tkeys_provide &keys_provide_mine,

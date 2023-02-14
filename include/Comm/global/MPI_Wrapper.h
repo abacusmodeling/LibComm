@@ -30,12 +30,21 @@ namespace MPI_Wrapper
 		return rank_size;
 	}
 
+#if MPI_VERSION>=4
+	inline MPI_Count mpi_get_count(const MPI_Status &status, const MPI_Datatype &datatype)
+	{
+		MPI_Count count;
+		MPI_CHECK( MPI_Get_count_c(&status, datatype, &count) );
+		return count;
+	}
+#else
 	inline int mpi_get_count(const MPI_Status &status, const MPI_Datatype &datatype)
 	{
 		int count;
-		MPI_CHECK( MPI_Get_count(&status, datatype, &count) );
+		MPI_CHECK( MPI_Get_count  (&status, datatype, &count) );
 		return count;
 	}
+#endif
 }
 
 }
