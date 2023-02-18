@@ -71,6 +71,8 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::communicate(
 	std::vector<std::future<void>> futures_isend(comm_size);
 	std::vector<std::future<void>> futures_recv(comm_size);
 	std::atomic_flag lock_set_value = ATOMIC_FLAG_INIT;
+	std::atomic<std::size_t> memory_max_isend(0);
+	std::atomic<std::size_t> memory_max_recv(0);
 
 	std::future<void> future_post_process = std::async (std::launch::async,
 		&Comm_Trans::post_process, this,
@@ -78,26 +80,25 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::communicate(
 
 	while (future_post_process.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
 	{
-		if (rank_isend_tmp < this->comm_size)		// && enough_memory())
-		{
-			const int rank_isend = (rank_isend_tmp + this->rank_mine) % this->comm_size;
-			futures_isend[rank_isend] = std::async (std::launch::async,
-				&Comm_Trans::isend_data, this,
-				rank_isend, std::cref(datas_isend), std::ref(strs_isend[rank_isend]), std::ref(requests_isend[rank_isend]));
-			++rank_isend_tmp;
-		}
-
-
 		int flag_iprobe=0;
 		MPI_Status status_recv;
 		MPI_Message message_recv;
 		MPI_CHECK (MPI_Improbe(MPI_ANY_SOURCE, Comm_Trans::tag_data, this->mpi_comm, &flag_iprobe, &message_recv, &status_recv));
-		if (flag_iprobe && rank_recv_working!=status_recv.MPI_SOURCE)
+		if (flag_iprobe && rank_recv_working!=status_recv.MPI_SOURCE && memory_enough(memory_max_recv))
 		{
 			futures_recv[status_recv.MPI_SOURCE] = std::async (std::launch::async,
 				&Comm_Trans::recv_data, this,
-				std::ref(datas_recv), status_recv, message_recv, std::ref(lock_set_value));
+				std::ref(datas_recv), status_recv, message_recv, std::ref(lock_set_value), std::ref(memory_max_recv));
 			rank_recv_working = status_recv.MPI_SOURCE;
+		}
+
+		if (rank_isend_tmp < this->comm_size && memory_enough(memory_max_isend))
+		{
+			const int rank_isend = (rank_isend_tmp + this->rank_mine) % this->comm_size;
+			futures_isend[rank_isend] = std::async (std::launch::async,
+				&Comm_Trans::isend_data, this,
+				rank_isend, std::cref(datas_isend), std::ref(strs_isend[rank_isend]), std::ref(requests_isend[rank_isend]), std::ref(memory_max_isend));
+			++rank_isend_tmp;
 		}
 	}
 	future_post_process.get();
@@ -109,7 +110,8 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::isend_data(
 	const int rank_isend,
 	const Tdatas_isend &datas_isend,
 	std::string &str_isend,
-	MPI_Request &request_isend) const
+	MPI_Request &request_isend,
+	std::atomic<std::size_t> &memory_max_isend) const
 {
 	std::stringstream ss_isend;
 	{
@@ -130,6 +132,7 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::isend_data(
 		oar(size_item);
 	} // end cereal::BinaryOutputArchive
 	str_isend = std::move(ss_isend.str());
+	memory_max_isend.store( std::max(str_isend.size()*sizeof(char), memory_max_isend.load()) );
 #if MPI_VERSION>=4
 	MPI_CHECK (MPI_Isend_c (str_isend.c_str(), str_isend.size(), MPI_CHAR, rank_isend, Comm_Trans::tag_data, this->mpi_comm, &request_isend));
 #else
@@ -144,7 +147,8 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::recv_data (
 	Tdatas_recv &datas_recv,
 	const MPI_Status status_recv,
 	MPI_Message message_recv,
-	std::atomic_flag &lock_set_value)
+	std::atomic_flag &lock_set_value,
+	std::atomic<std::size_t> &memory_max_recv)
 {
 #if MPI_VERSION>=4
 	MPI_Count size_mpi;		MPI_CHECK( MPI_Get_count_c(&status_recv, MPI_CHAR, &size_mpi) );
@@ -158,6 +162,7 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::recv_data (
 
 	std::stringstream ss_recv;
 	ss_recv.rdbuf()->pubsetbuf(buffer_recv.data(), size_mpi);
+	memory_max_recv.store( std::max(buffer_recv.size()*sizeof(char), memory_max_recv.load()) );
 
 	{
 		cereal::BinaryInputArchive iar(ss_recv);

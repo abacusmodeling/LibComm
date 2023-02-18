@@ -6,6 +6,7 @@
 #pragma once
 
 #include "../Comm_Tools.h"
+#include "../global/Global_Func.h"
 #include <mpi.h>
 #include <functional>
 #include <future>
@@ -50,13 +51,14 @@ public:
 		Tdatas_recv &datas_recv);
 
 private:
-	void isend_data (const int rank_isend, const Tdatas_isend &datas_isend, std::string &str_isend, MPI_Request &request_isend) const;
-	void recv_data (Tdatas_recv &datas_recv, const MPI_Status status_recv, MPI_Message message_recv, std::atomic_flag &lock_set_value);
+	void isend_data (const int rank_isend, const Tdatas_isend &datas_isend, std::string &str_isend, MPI_Request &request_isend, std::atomic<std::size_t> &memory_max_isend) const;
+	void recv_data (Tdatas_recv &datas_recv, const MPI_Status status_recv, MPI_Message message_recv, std::atomic_flag &lock_set_value, std::atomic<std::size_t> &memory_max_isend);
 	void post_process(
 		std::vector<MPI_Request> &requests_isend,
 		std::vector<std::string> &strs_isend,
 		std::vector<std::future<void>> &futures_isend,
 		std::vector<std::future<void>> &futures_recv) const;
+	bool memory_enough(const std::atomic<size_t> &memory_max) const { return Global_Func::memory_available() > memory_max.load() * 2; }
 
 public:
 	const MPI_Comm &mpi_comm;

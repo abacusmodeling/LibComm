@@ -24,7 +24,7 @@ namespace Cereal_Func
 
 	template<typename... Ts>
 	MPI_Status mpi_recv(const MPI_Comm &mpi_comm,
-		Ts&... data);
+		Ts&... data);	
 }
 
 }
