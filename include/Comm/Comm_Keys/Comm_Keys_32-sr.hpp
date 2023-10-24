@@ -112,7 +112,7 @@ void Comm_Keys_32<Tkey,Tkeys_provide,Tkeys_require>::send_keys_require_mine(
 	for(int rank_recv_tmp=1; rank_recv_tmp<this->rank_size; ++rank_recv_tmp)
 	{
 		const int rank_recv = (this->rank_mine + rank_recv_tmp) % this->rank_size;
-		MPI_CHECK( MPI_Isend( ss_isend.str().c_str(), ss_isend.str().size(), MPI_CHAR, rank_recv, this->tag_keys, this->mpi_comm, &requests_isend[rank_recv] ) );
+		Cereal_Func::mpi_isend(ss_isend.str(), rank_recv, this->tag_keys, this->mpi_comm, requests_isend[rank_recv]);
 		std::this_thread::yield();
 	}
 

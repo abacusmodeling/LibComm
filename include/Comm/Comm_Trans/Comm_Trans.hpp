@@ -6,6 +6,7 @@
 #pragma once
 
 #include "Comm_Trans.h"
+#include "../global/Cereal_Func.h"
 
 #include <vector>
 #include <string>
@@ -133,11 +134,7 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::isend_data(
 	} // end cereal::BinaryOutputArchive
 	str_isend = std::move(ss_isend.str());
 	memory_max_isend.store( std::max(str_isend.size()*sizeof(char), memory_max_isend.load()) );
-#if MPI_VERSION>=4
-	MPI_CHECK (MPI_Isend_c (str_isend.c_str(), str_isend.size(), MPI_CHAR, rank_isend, Comm_Trans::tag_data, this->mpi_comm, &request_isend));
-#else
-	MPI_CHECK (MPI_Isend (str_isend.c_str(), str_isend.size(), MPI_CHAR, rank_isend, Comm_Trans::tag_data, this->mpi_comm, &request_isend));
-#endif
+	Cereal_Func::mpi_isend(str_isend, rank_isend, Comm_Trans::tag_data, this->mpi_comm, request_isend);
 }
 
 

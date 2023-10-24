@@ -19,14 +19,14 @@ namespace Comm
 
 namespace Cereal_Func
 {
-	// Send ss
+	// Send str
 	template<typename... Ts>
-	void mpi_send(const std::stringstream &ss, const int rank_recv, const int tag, const MPI_Comm &mpi_comm)
+	void mpi_send(const std::string &str, const int rank_recv, const int tag, const MPI_Comm &mpi_comm)
 	{
 	  #if MPI_VERSION>=4
-		MPI_CHECK( MPI_Send_c( ss.str().c_str(), ss.str().size(), MPI_CHAR, rank_recv, tag, mpi_comm ) );
+		MPI_CHECK( MPI_Send_c( str.c_str(), str.size(), MPI_CHAR, rank_recv, tag, mpi_comm ) );
 	  #else
-		MPI_CHECK( MPI_Send  ( ss.str().c_str(), ss.str().size(), MPI_CHAR, rank_recv, tag, mpi_comm ) );
+		MPI_CHECK( MPI_Send  ( str.c_str(), str.size(), MPI_CHAR, rank_recv, tag, mpi_comm ) );
 	  #endif
 	}
 
@@ -40,32 +40,34 @@ namespace Cereal_Func
 			cereal::BinaryOutputArchive ar(ss);
 			ar(data...);
 		}
-		mpi_send(ss, rank_recv, tag, mpi_comm);
+		mpi_send(ss.str(), rank_recv, tag, mpi_comm);
 	}
 
 
-	// Isend ss
+	// Isend str
 	template<typename... Ts>
-	void mpi_isend(const std::stringstream &ss, const int rank_recv, const int tag, const MPI_Comm &mpi_comm, MPI_Request &request)
+	void mpi_isend(const std::string &str, const int rank_recv, const int tag, const MPI_Comm &mpi_comm, MPI_Request &request)
 	{
 	  #if MPI_VERSION>=4
-		MPI_CHECK( MPI_Isend_c( ss.str().c_str(), ss.str().size(), MPI_CHAR, rank_recv, tag, mpi_comm, &request ) );
+		MPI_CHECK( MPI_Isend_c( str.c_str(), str.size(), MPI_CHAR, rank_recv, tag, mpi_comm, &request ) );
 	  #else
-		MPI_CHECK( MPI_Isend  ( ss.str().c_str(), ss.str().size(), MPI_CHAR, rank_recv, tag, mpi_comm, &request ) );
+		MPI_CHECK( MPI_Isend  ( str.c_str(), str.size(), MPI_CHAR, rank_recv, tag, mpi_comm, &request ) );
 	  #endif
 	}
 
-	// Isend data using temporary memory ss
+	// Isend data using temporary memory str
 	template<typename... Ts>
 	void mpi_isend(const int rank_recv, const int tag, const MPI_Comm &mpi_comm,
-		std::stringstream &ss, MPI_Request &request,
+		std::string &str, MPI_Request &request,
 		const Ts&... data)
 	{
+		std::stringstream ss;
 		{
 			cereal::BinaryOutputArchive ar(ss);
 			ar(data...);
 		}
-		mpi_isend(ss, rank_recv, tag, mpi_comm, request);
+		str = ss.str();
+		mpi_isend(str, rank_recv, tag, mpi_comm, request);
 	}
 
 

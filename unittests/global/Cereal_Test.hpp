@@ -27,12 +27,12 @@ namespace Cereal_Test
 		{
 			std::vector<double> v = {1,2,3,4,5};
 			std::map<int,double> m = {{1,2.3}, {4,5.6}, {-7,-8.9}};
-			std::stringstream ss;
+			std::string str;
 			MPI_Request request;
-			Comm::Cereal_Func::mpi_isend(1, 0, MPI_COMM_WORLD, ss, request,
+			Comm::Cereal_Func::mpi_isend(1, 0, MPI_COMM_WORLD, str, request,
 				v, std::string("abc"), -100, m);
 
-			std::cout<<"#\t"<<ss.str().size()<<std::endl;
+			std::cout<<"#\t"<<str.size()<<std::endl;
 			int flag=0;
 			do
 			{
