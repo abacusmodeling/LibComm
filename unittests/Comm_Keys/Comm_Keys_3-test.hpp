@@ -29,8 +29,8 @@ namespace Comm_Keys_3_Test
 		Require_Judge()=default;
 		Require_Judge(const MPI_Comm &mpi_comm)
 		{
-			this->rank_size = Comm::MPI_Wrapper::mpi_get_rank(mpi_comm);
-			this->rank_mine = Comm::MPI_Wrapper::mpi_get_size(mpi_comm);
+			this->rank_mine = Comm::MPI_Wrapper::mpi_get_rank(mpi_comm);
+			this->rank_size = Comm::MPI_Wrapper::mpi_get_size(mpi_comm);
 		}
 		bool judge(const int &key) const
 		{

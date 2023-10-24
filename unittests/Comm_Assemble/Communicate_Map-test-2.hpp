@@ -15,6 +15,7 @@
 #include <map>
 #include <tuple>
 #include <fstream>
+#include <cassert>
 #include <stdexcept>
 #include <string>
 
