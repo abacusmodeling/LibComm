@@ -107,12 +107,14 @@ void Comm_Keys_32<Tkey,Tkeys_provide,Tkeys_require>::send_keys_require_mine(
 		cereal::BinaryOutputArchive ar(ss_isend);
 		ar(keys_require_mine);
 	}
+	const std::size_t exponent_align = Cereal_Func::align_stringstream(ss_isend);
+	const std::string str_isend = ss_isend.str();
 
 	std::vector<MPI_Request> requests_isend(this->rank_size);
 	for(int rank_recv_tmp=1; rank_recv_tmp<this->rank_size; ++rank_recv_tmp)
 	{
 		const int rank_recv = (this->rank_mine + rank_recv_tmp) % this->rank_size;
-		Cereal_Func::mpi_isend(ss_isend.str(), rank_recv, this->tag_keys, this->mpi_comm, requests_isend[rank_recv]);
+		Cereal_Func::mpi_isend(str_isend, exponent_align, rank_recv, this->tag_keys, this->mpi_comm, requests_isend[rank_recv]);
 		std::this_thread::yield();
 	}
 

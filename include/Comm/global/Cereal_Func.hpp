@@ -7,10 +7,12 @@
 
 #include "Cereal_Func.h"
 #include "Cereal_Types.h"
+#include "MPI_Wrapper.h"
 
 #include <cereal/archives/binary.hpp>
 #include <sstream>
 #include <mpi.h>
+#include <cmath>
 
 #define MPI_CHECK(x) if((x)!=MPI_SUCCESS)	throw std::runtime_error(std::string(__FILE__)+" line "+std::to_string(__LINE__));
 
@@ -19,14 +21,36 @@ namespace Comm
 
 namespace Cereal_Func
 {
-	// Send str
-	template<typename... Ts>
-	void mpi_send(const std::string &str, const int rank_recv, const int tag, const MPI_Comm &mpi_comm)
+	// every 2^exponent_align char concatenate to 1 word
+		// <<exponent_align means *2^exponent_align
+		// >>exponent_align means /2^exponent_align
+	static std::size_t align_stringstream(std::stringstream &ss)
 	{
 	  #if MPI_VERSION>=4
-		MPI_CHECK( MPI_Send_c( str.c_str(), str.size(), MPI_CHAR, rank_recv, tag, mpi_comm ) );
+	  	using int_type = MPI_Count;
 	  #else
-		MPI_CHECK( MPI_Send  ( str.c_str(), str.size(), MPI_CHAR, rank_recv, tag, mpi_comm ) );
+		using int_type = int;
+	  #endif
+		const std::size_t size_old = ss.str().size();				// Inefficient, should be optimized
+	  	const std::size_t times = std::ceil( double(size_old) / double(std::numeric_limits<int_type>::max()) );
+		const std::size_t exponent_align = std::ceil( std::log(times) / std::log(2) );
+		const MPI_Datatype MPI_type = MPI_Wrapper::char_contiguous(exponent_align);
+		constexpr char c0 = 0;
+		const std::size_t size_align = 1<<exponent_align;
+		if(size_old%size_align)
+			for(int i=size_old%size_align; i<size_align; ++i)
+				ss<<c0;
+		return exponent_align;
+	}
+
+
+	// Send str
+	static void mpi_send(const std::string &str, const std::size_t exponent_align, const int rank_recv, const int tag, const MPI_Comm &mpi_comm)
+	{
+	  #if MPI_VERSION>=4
+		MPI_CHECK( MPI_Send_c( str.c_str(), str.size()>>exponent_align, MPI_Wrapper::char_contiguous(exponent_align), rank_recv, tag, mpi_comm ) );
+	  #else
+		MPI_CHECK( MPI_Send  ( str.c_str(), str.size()>>exponent_align, MPI_Wrapper::char_contiguous(exponent_align), rank_recv, tag, mpi_comm ) );
 	  #endif
 	}
 
@@ -40,18 +64,19 @@ namespace Cereal_Func
 			cereal::BinaryOutputArchive ar(ss);
 			ar(data...);
 		}
-		mpi_send(ss.str(), rank_recv, tag, mpi_comm);
+		const std::size_t exponent_align = align_stringstream(ss);
+		const std::string &str = ss.str();
+		mpi_send(str, exponent_align, rank_recv, tag, mpi_comm);
 	}
 
 
 	// Isend str
-	template<typename... Ts>
-	void mpi_isend(const std::string &str, const int rank_recv, const int tag, const MPI_Comm &mpi_comm, MPI_Request &request)
+	static void mpi_isend(const std::string &str, const std::size_t exponent_align, const int rank_recv, const int tag, const MPI_Comm &mpi_comm, MPI_Request &request)
 	{
 	  #if MPI_VERSION>=4
-		MPI_CHECK( MPI_Isend_c( str.c_str(), str.size(), MPI_CHAR, rank_recv, tag, mpi_comm, &request ) );
+		MPI_CHECK( MPI_Isend_c( str.c_str(), str.size()>>exponent_align, MPI_Wrapper::char_contiguous(exponent_align), rank_recv, tag, mpi_comm, &request ) );
 	  #else
-		MPI_CHECK( MPI_Isend  ( str.c_str(), str.size(), MPI_CHAR, rank_recv, tag, mpi_comm, &request ) );
+		MPI_CHECK( MPI_Isend  ( str.c_str(), str.size()>>exponent_align, MPI_Wrapper::char_contiguous(exponent_align), rank_recv, tag, mpi_comm, &request ) );
 	  #endif
 	}
 
@@ -66,25 +91,34 @@ namespace Cereal_Func
 			cereal::BinaryOutputArchive ar(ss);
 			ar(data...);
 		}
+		const std::size_t exponent_align = align_stringstream(ss);
 		str = ss.str();
-		mpi_isend(str, rank_recv, tag, mpi_comm, request);
+		mpi_isend(str, exponent_align, rank_recv, tag, mpi_comm, request);
 	}
 
 
 	// Recv to return
-	template<typename... Ts>
-	std::vector<char> mpi_recv(const MPI_Comm &mpi_comm, MPI_Status &status)
+	static std::vector<char> mpi_recv(const MPI_Comm &mpi_comm, MPI_Status &status)
 	{
-	  #if MPI_VERSION>=4
-		MPI_Count size;		MPI_CHECK( MPI_Get_count_c( &status, MPI_CHAR, &size ) );
-		std::vector<char> c(size);
-		MPI_CHECK( MPI_Recv_c( c.data(), size, MPI_CHAR, status.MPI_SOURCE, status.MPI_TAG, mpi_comm, MPI_STATUS_IGNORE ) );
-	  #else
-		int size;			MPI_CHECK( MPI_Get_count  ( &status, MPI_CHAR, &size ) );
-		std::vector<char> c(size);
-		MPI_CHECK( MPI_Recv  ( c.data(), size, MPI_CHAR, status.MPI_SOURCE, status.MPI_TAG, mpi_comm, MPI_STATUS_IGNORE ) );
-	  #endif
-		return c;
+		for(std::size_t exponent_align=0; ; ++exponent_align)
+		{
+			const MPI_Datatype mpi_type = MPI_Wrapper::char_contiguous(exponent_align);
+		  #if MPI_VERSION>=4
+			MPI_Count size;		MPI_CHECK( MPI_Get_count_c( &status, mpi_type, &size ) );
+		  #else
+			int size;			MPI_CHECK( MPI_Get_count  ( &status, mpi_type, &size ) );
+		  #endif
+			if(size!=MPI_UNDEFINED)
+			{
+				std::vector<char> c(std::size_t(size)<<exponent_align);
+			  #if MPI_VERSION>=4
+				MPI_CHECK( MPI_Recv_c( c.data(), size, mpi_type, status.MPI_SOURCE, status.MPI_TAG, mpi_comm, MPI_STATUS_IGNORE ) );
+			  #else
+				MPI_CHECK( MPI_Recv  ( c.data(), size, mpi_type, status.MPI_SOURCE, status.MPI_TAG, mpi_comm, MPI_STATUS_IGNORE ) );
+			  #endif
+				return c;
+			}
+		}
 	}
 
 	// Recv to data
@@ -104,6 +138,31 @@ namespace Cereal_Func
 			ar(data...);
 		}
 		return status;
+	}
+
+
+	// Mrecv to return
+	static std::vector<char> mpi_mrecv(MPI_Message &message_recv, const MPI_Status &status)
+	{
+		for(std::size_t exponent_align=0; ; ++exponent_align)
+		{
+			const MPI_Datatype mpi_type = MPI_Wrapper::char_contiguous(exponent_align);
+		  #if MPI_VERSION>=4
+			MPI_Count size;		MPI_CHECK( MPI_Get_count_c( &status, mpi_type, &size ) );
+		  #else
+			int size;			MPI_CHECK( MPI_Get_count  ( &status, mpi_type, &size ) );
+		  #endif
+			if(size!=MPI_UNDEFINED)
+			{
+				std::vector<char> c(std::size_t(size)<<exponent_align);
+			  #if MPI_VERSION>=4
+				MPI_CHECK( MPI_Mrecv_c( c.data(), size, mpi_type, &message_recv, MPI_STATUS_IGNORE ) );
+			  #else
+				MPI_CHECK( MPI_Mrecv  ( c.data(), size, mpi_type, &message_recv, MPI_STATUS_IGNORE ) );
+			  #endif
+				return c;
+			}
+		}
 	}
 }
 

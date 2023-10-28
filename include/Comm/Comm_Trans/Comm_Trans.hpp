@@ -132,9 +132,10 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::isend_data(
 		ss_isend.rdbuf()->pubseekpos(0);		// 返回size_item的占位，序列化真正的size_item值
 		oar(size_item);
 	} // end cereal::BinaryOutputArchive
-	str_isend = std::move(ss_isend.str());
+	const std::size_t exponent_align = Cereal_Func::align_stringstream(ss_isend);
+	str_isend = ss_isend.str();
 	memory_max_isend.store( std::max(str_isend.size()*sizeof(char), memory_max_isend.load()) );
-	Cereal_Func::mpi_isend(str_isend, rank_isend, Comm_Trans::tag_data, this->mpi_comm, request_isend);
+	Cereal_Func::mpi_isend(str_isend, exponent_align, rank_isend, Comm_Trans::tag_data, this->mpi_comm, request_isend);
 }
 
 
@@ -147,18 +148,10 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::recv_data (
 	std::atomic_flag &lock_set_value,
 	std::atomic<std::size_t> &memory_max_recv)
 {
-#if MPI_VERSION>=4
-	MPI_Count size_mpi;		MPI_CHECK( MPI_Get_count_c(&status_recv, MPI_CHAR, &size_mpi) );
-	std::vector<char> buffer_recv(size_mpi);
-	MPI_CHECK (MPI_Mrecv_c (buffer_recv.data(), size_mpi, MPI_CHAR, &message_recv, MPI_STATUS_IGNORE));
-#else
-	int size_mpi;			MPI_CHECK( MPI_Get_count  (&status_recv, MPI_CHAR, &size_mpi) );
-	std::vector<char> buffer_recv(size_mpi);
-	MPI_CHECK (MPI_Mrecv   (buffer_recv.data(), size_mpi, MPI_CHAR, &message_recv, MPI_STATUS_IGNORE));
-#endif
+	std::vector<char> buffer_recv = Cereal_Func::mpi_mrecv(message_recv, status_recv);
 
 	std::stringstream ss_recv;
-	ss_recv.rdbuf()->pubsetbuf(buffer_recv.data(), size_mpi);
+	ss_recv.rdbuf()->pubsetbuf(buffer_recv.data(), buffer_recv.size());
 	memory_max_recv.store( std::max(buffer_recv.size()*sizeof(char), memory_max_recv.load()) );
 
 	{
