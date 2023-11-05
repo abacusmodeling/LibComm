@@ -27,7 +27,7 @@
 
 namespace Communicate_Map_Test
 {
-	void test_speed(int argc, char *argv[])
+	static void test_speed(int argc, char *argv[])
 	{
 		int provided;
 		MPI_CHECK( MPI_Init_thread( &argc, &argv, MPI_THREAD_MULTIPLE, &provided ) );

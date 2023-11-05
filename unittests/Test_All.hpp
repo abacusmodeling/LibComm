@@ -13,7 +13,7 @@
 
 namespace Test_All
 {
-	void test_all(int argc, char *argv[])
+	inline void test_all(int argc, char *argv[])
 	{
 		Cereal_Test::main(argc,argv);
 		Comm_Keys_3_Test::test_all(argc,argv);

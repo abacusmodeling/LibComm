@@ -10,7 +10,7 @@ namespace Comm
 
 namespace Global_Func
 {
-	static std::size_t memory_available();
+	extern inline std::size_t memory_available();
 }
 
 }

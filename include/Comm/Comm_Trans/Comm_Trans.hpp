@@ -84,7 +84,7 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::communicate(
 		int flag_iprobe=0;
 		MPI_Status status_recv;
 		MPI_Message message_recv;
-		MPI_CHECK (MPI_Improbe(MPI_ANY_SOURCE, Comm_Trans::tag_data, this->mpi_comm, &flag_iprobe, &message_recv, &status_recv));
+		MPI_CHECK (MPI_Improbe(MPI_ANY_SOURCE, this->tag_data, this->mpi_comm, &flag_iprobe, &message_recv, &status_recv));
 		if (flag_iprobe && rank_recv_working!=status_recv.MPI_SOURCE && memory_enough(memory_max_recv))
 		{
 			futures_recv[status_recv.MPI_SOURCE] = std::async (std::launch::async,
@@ -135,7 +135,7 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::isend_data(
 	const std::size_t exponent_align = Cereal_Func::align_stringstream(ss_isend);
 	str_isend = ss_isend.str();
 	memory_max_isend.store( std::max(str_isend.size()*sizeof(char), memory_max_isend.load()) );
-	Cereal_Func::mpi_isend(str_isend, exponent_align, rank_isend, Comm_Trans::tag_data, this->mpi_comm, request_isend);
+	Cereal_Func::mpi_isend(str_isend, exponent_align, rank_isend, this->tag_data, this->mpi_comm, request_isend);
 }
 
 

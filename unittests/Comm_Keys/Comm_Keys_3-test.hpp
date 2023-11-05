@@ -124,12 +124,12 @@ namespace Comm_Keys_3_Test
 		MPI_CHECK( MPI_Finalize() );
 	}
 
-	static void main1_31(int argc, char *argv[]){ main1< Comm::Comm_Keys_31_SenderTraversal<int, std::set<int>, Require_Judge> > (argc,argv); }
-	static void main1_32(int argc, char *argv[]){ main1< Comm::Comm_Keys_32_SenderTraversal<int, std::set<int>, Require_Judge> > (argc,argv); }
-	static void main2_31(int argc, char *argv[]){ main2< Comm::Comm_Keys_31_SenderJudge<int, Provider_Judge, Require_Judge> > (argc,argv); }
-	static void main2_32(int argc, char *argv[]){ main2< Comm::Comm_Keys_32_SenderJudge<int, Provider_Judge, Require_Judge> > (argc,argv); }
+	inline void main1_31(int argc, char *argv[]){ main1< Comm::Comm_Keys_31_SenderTraversal<int, std::set<int>, Require_Judge> > (argc,argv); }
+	inline void main1_32(int argc, char *argv[]){ main1< Comm::Comm_Keys_32_SenderTraversal<int, std::set<int>, Require_Judge> > (argc,argv); }
+	inline void main2_31(int argc, char *argv[]){ main2< Comm::Comm_Keys_31_SenderJudge<int, Provider_Judge, Require_Judge> > (argc,argv); }
+	inline void main2_32(int argc, char *argv[]){ main2< Comm::Comm_Keys_32_SenderJudge<int, Provider_Judge, Require_Judge> > (argc,argv); }
 
-	static void test_all(int argc, char *argv[])
+	inline void test_all(int argc, char *argv[])
 	{
 		main1_31(argc,argv);
 		main1_32(argc,argv);

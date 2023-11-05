@@ -66,7 +66,7 @@ public:
 	int comm_size = 1;
 
 private:
-	const static int tag_data = 0;
+	const int tag_data = 0;
 };
 
 }

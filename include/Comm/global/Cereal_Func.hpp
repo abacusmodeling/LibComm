@@ -24,7 +24,7 @@ namespace Cereal_Func
 	// every 2^exponent_align char concatenate to 1 word
 		// <<exponent_align means *2^exponent_align
 		// >>exponent_align means /2^exponent_align
-	static std::size_t align_stringstream(std::stringstream &ss)
+	inline std::size_t align_stringstream(std::stringstream &ss)
 	{
 	  #if MPI_VERSION>=4
 	  	using int_type = MPI_Count;
@@ -34,18 +34,18 @@ namespace Cereal_Func
 		const std::size_t size_old = ss.str().size();				// Inefficient, should be optimized
 	  	const std::size_t times = std::ceil( double(size_old) / double(std::numeric_limits<int_type>::max()) );
 		const std::size_t exponent_align = std::ceil( std::log(times) / std::log(2) );
-		const MPI_Datatype MPI_type = MPI_Wrapper::char_contiguous(exponent_align);
+		MPI_Wrapper::char_contiguous(exponent_align);
 		constexpr char c0 = 0;
 		const std::size_t size_align = 1<<exponent_align;
 		if(size_old%size_align)
-			for(int i=size_old%size_align; i<size_align; ++i)
+			for(std::size_t i=size_old%size_align; i<size_align; ++i)
 				ss<<c0;
 		return exponent_align;
 	}
 
 
 	// Send str
-	static void mpi_send(const std::string &str, const std::size_t exponent_align, const int rank_recv, const int tag, const MPI_Comm &mpi_comm)
+	inline void mpi_send(const std::string &str, const std::size_t exponent_align, const int rank_recv, const int tag, const MPI_Comm &mpi_comm)
 	{
 	  #if MPI_VERSION>=4
 		MPI_CHECK( MPI_Send_c( str.c_str(), str.size()>>exponent_align, MPI_Wrapper::char_contiguous(exponent_align), rank_recv, tag, mpi_comm ) );
@@ -71,7 +71,7 @@ namespace Cereal_Func
 
 
 	// Isend str
-	static void mpi_isend(const std::string &str, const std::size_t exponent_align, const int rank_recv, const int tag, const MPI_Comm &mpi_comm, MPI_Request &request)
+	inline void mpi_isend(const std::string &str, const std::size_t exponent_align, const int rank_recv, const int tag, const MPI_Comm &mpi_comm, MPI_Request &request)
 	{
 	  #if MPI_VERSION>=4
 		MPI_CHECK( MPI_Isend_c( str.c_str(), str.size()>>exponent_align, MPI_Wrapper::char_contiguous(exponent_align), rank_recv, tag, mpi_comm, &request ) );
@@ -98,7 +98,7 @@ namespace Cereal_Func
 
 
 	// Recv to return
-	static std::vector<char> mpi_recv(const MPI_Comm &mpi_comm, MPI_Status &status)
+	inline std::vector<char> mpi_recv(const MPI_Comm &mpi_comm, MPI_Status &status)
 	{
 		for(std::size_t exponent_align=0; ; ++exponent_align)
 		{
@@ -142,7 +142,7 @@ namespace Cereal_Func
 
 
 	// Mrecv to return
-	static std::vector<char> mpi_mrecv(MPI_Message &message_recv, const MPI_Status &status)
+	inline std::vector<char> mpi_mrecv(MPI_Message &message_recv, const MPI_Status &status)
 	{
 		for(std::size_t exponent_align=0; ; ++exponent_align)
 		{

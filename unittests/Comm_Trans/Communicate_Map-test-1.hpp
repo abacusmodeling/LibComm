@@ -16,7 +16,7 @@
 
 namespace Communicate_Map_Test
 {
-	void test_transmission(int argc, char *argv[])
+	static void test_transmission(int argc, char *argv[])
 	{
 		int provided;
 		MPI_Init_thread( &argc, &argv, MPI_THREAD_MULTIPLE, &provided );

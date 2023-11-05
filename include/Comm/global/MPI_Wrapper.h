@@ -60,7 +60,7 @@ namespace MPI_Wrapper
 			{
 				const std::size_t size_old = type_pool.size();
 				type_pool.resize(exponent+1);
-				for(int ie=size_old; ie<type_pool.size(); ++ie)
+				for(std::size_t ie=size_old; ie<type_pool.size(); ++ie)
 				{
 					if(!ie)
 					{
@@ -77,7 +77,7 @@ namespace MPI_Wrapper
 		}
 		~MPI_Type_Contiguous_Pool()
 		{
-			for(int ie=1; ie<type_pool.size(); ++ie)
+			for(std::size_t ie=1; ie<type_pool.size(); ++ie)
 				MPI_Type_free( &type_pool[ie] );
 		}
 		std::vector<MPI_Datatype> type_pool;

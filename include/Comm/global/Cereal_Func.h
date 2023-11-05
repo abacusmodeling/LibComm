@@ -15,7 +15,7 @@ namespace Comm
 namespace Cereal_Func
 {
 	// Send str
-	extern void mpi_send(const std::string &str, const std::size_t exponent_align, const int rank_recv, const int tag, const MPI_Comm &mpi_comm);
+	extern inline void mpi_send(const std::string &str, const std::size_t exponent_align, const int rank_recv, const int tag, const MPI_Comm &mpi_comm);
 
 	// Send data
 	template<typename... Ts>
@@ -23,7 +23,7 @@ namespace Cereal_Func
 		const Ts&... data);
 
 	// Isend str
-	extern void mpi_isend(const std::string &str, const std::size_t exponent_align, const int rank_recv, const int tag, const MPI_Comm &mpi_comm, MPI_Request &request);
+	extern inline void mpi_isend(const std::string &str, const std::size_t exponent_align, const int rank_recv, const int tag, const MPI_Comm &mpi_comm, MPI_Request &request);
 
 	// Isend data using temporary memory str
 	template<typename... Ts>
@@ -33,11 +33,14 @@ namespace Cereal_Func
 
 	// Recv to data
 	template<typename... Ts>
-	MPI_Status mpi_recv(const MPI_Comm &mpi_comm,
+	extern MPI_Status mpi_recv(const MPI_Comm &mpi_comm,
 		Ts&... data);
 
 	// Mrecv to return
-	extern std::vector<char> mpi_mrecv(MPI_Message &message_recv, const MPI_Status &status);
+	extern inline std::vector<char> mpi_mrecv(MPI_Message &message_recv, const MPI_Status &status);
+
+	// every 2^exponent_align char concatenate to 1 word
+	extern inline std::size_t align_stringstream(std::stringstream &ss);
 }
 
 }

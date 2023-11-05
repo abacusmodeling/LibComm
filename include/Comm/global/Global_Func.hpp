@@ -16,7 +16,7 @@ namespace Comm
 
 namespace Global_Func
 {
-	static std::size_t memory_available()
+	inline std::size_t memory_available()
 	{
 		constexpr std::size_t kB_to_B = 1024;
 		std::ifstream ifs("/proc/meminfo");
