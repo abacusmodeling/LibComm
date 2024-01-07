@@ -11,6 +11,12 @@
 #include <string>
 #include <stdexcept>
 
+// BSD like macOS does not have /proc/meminfo
+// include unistd.h to get the number of system memory.
+#if defined(__MACH__)
+#include <unistd.h>
+#endif
+
 namespace Comm
 {
 
@@ -18,6 +24,12 @@ namespace Global_Func
 {
 	static std::size_t memory_available()
 	{
+#if defined(__MACH__)
+		// HACK: always assume half of the system memory free. Only for build and test on macOS
+		std::size_t pages = sysconf(_SC_PHYS_PAGES);
+		std::size_t page_size = sysconf(_SC_PAGE_SIZE);
+		return pages * page_size / 2;
+#else
 		constexpr std::size_t kB_to_B = 1024;
 		std::ifstream ifs("/proc/meminfo");
 		int num = 0;
@@ -42,6 +54,7 @@ namespace Global_Func
 			}
 		}
 		throw std::runtime_error("read /proc/meminfo error in " + std::string(__FILE__) + " line " + std::to_string(__LINE__));
+#endif
 	}
 }
 
