@@ -50,39 +50,34 @@ namespace MPI_Wrapper
 
 
 	// MPI_Type_Contiguous_Pool(ie) = MPI_Type_contiguous(2^ie, Type_Base);
-	template<MPI_Datatype Type_Base>
 	class MPI_Type_Contiguous_Pool
 	{
 	  public:
 		MPI_Datatype operator()(const std::size_t exponent)
 		{
-			if(type_pool.size()<exponent+1)
+			if(this->type_pool.size()<exponent+1)
 			{
-				const std::size_t size_old = type_pool.size();
-				type_pool.resize(exponent+1);
-				for(std::size_t ie=size_old; ie<type_pool.size(); ++ie)
+				const std::size_t size_old = this->type_pool.size();
+				this->type_pool.resize(exponent+1);
+				for(std::size_t ie=size_old; ie<this->type_pool.size(); ++ie)
 				{
-					if(!ie)
-					{
-						type_pool[ie] = Type_Base;
-					}
-					else
-					{
-						MPI_Type_contiguous( 1<<ie, Type_Base, &type_pool[ie] );
-						MPI_Type_commit( &type_pool[ie] );
-					}
+					MPI_CHECK( MPI_Type_contiguous( 1<<ie, this->Type_Base, &this->type_pool[ie] ) );
+					MPI_CHECK( MPI_Type_commit( &this->type_pool[ie] ) );
 				}
 			}
-			return type_pool[exponent];
+			return this->type_pool[exponent];
 		}
+		MPI_Type_Contiguous_Pool(const MPI_Datatype &Type_Base_in)
+			:Type_Base(Type_Base_in){}
 		~MPI_Type_Contiguous_Pool()
 		{
-			for(std::size_t ie=1; ie<type_pool.size(); ++ie)
-				MPI_Type_free( &type_pool[ie] );
+			for(std::size_t ie=0; ie<this->type_pool.size(); ++ie)
+				MPI_Type_free( &this->type_pool[ie] );
 		}
 		std::vector<MPI_Datatype> type_pool;
+		const MPI_Datatype Type_Base;
 	};
-	static MPI_Type_Contiguous_Pool<MPI_CHAR> char_contiguous;
+	static MPI_Type_Contiguous_Pool char_contiguous(MPI_CHAR);
 }
 
 }
