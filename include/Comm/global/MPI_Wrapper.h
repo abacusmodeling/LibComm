@@ -61,8 +61,15 @@ namespace MPI_Wrapper
 				this->type_pool.resize(exponent+1);
 				for(std::size_t ie=size_old; ie<this->type_pool.size(); ++ie)
 				{
-					MPI_CHECK( MPI_Type_contiguous( 1<<ie, this->Type_Base, &this->type_pool[ie] ) );
-					MPI_CHECK( MPI_Type_commit( &this->type_pool[ie] ) );
+					if (!ie)	//no need to commit the basic datatype
+					{
+						this->type_pool[ie] = this->Type_Base;
+					}
+					else
+					{
+						MPI_CHECK(MPI_Type_contiguous(1 << ie, this->Type_Base, &this->type_pool[ie]));
+						MPI_CHECK(MPI_Type_commit(&this->type_pool[ie]));
+					}
 				}
 			}
 			return this->type_pool[exponent];
@@ -71,7 +78,7 @@ namespace MPI_Wrapper
 			:Type_Base(Type_Base_in){}
 		~MPI_Type_Contiguous_Pool()
 		{
-			for(std::size_t ie=0; ie<this->type_pool.size(); ++ie)
+			for (std::size_t ie = 1; ie < this->type_pool.size(); ++ie)
 				MPI_Type_free( &this->type_pool[ie] );
 		}
 		std::vector<MPI_Datatype> type_pool;
