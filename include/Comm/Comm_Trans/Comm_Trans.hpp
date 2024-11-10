@@ -112,7 +112,7 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::isend_data(
 	const Tdatas_isend &datas_isend,
 	std::string &str_isend,
 	MPI_Request &request_isend,
-	std::atomic<std::size_t> &memory_max_isend) const
+	std::atomic<std::size_t> &memory_max_isend)
 {
 	std::stringstream ss_isend;
 	{
@@ -132,10 +132,10 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::isend_data(
 		ss_isend.rdbuf()->pubseekpos(0);		// 返回size_item的占位，序列化真正的size_item值
 		oar(size_item);
 	} // end cereal::BinaryOutputArchive
-	const std::size_t exponent_align = Cereal_Func::align_stringstream(ss_isend);
+	const std::size_t exponent_align = this->cereal_func.align_stringstream(ss_isend);
 	str_isend = ss_isend.str();
 	memory_max_isend.store( std::max(str_isend.size()*sizeof(char), memory_max_isend.load()) );
-	Cereal_Func::mpi_isend(str_isend, exponent_align, rank_isend, this->tag_data, this->mpi_comm, request_isend);
+	this->cereal_func.mpi_isend(str_isend, exponent_align, rank_isend, this->tag_data, this->mpi_comm, request_isend);
 }
 
 
@@ -148,7 +148,7 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::recv_data (
 	std::atomic_flag &lock_set_value,
 	std::atomic<std::size_t> &memory_max_recv)
 {
-	std::vector<char> buffer_recv = Cereal_Func::mpi_mrecv(message_recv, status_recv);
+	std::vector<char> buffer_recv = this->cereal_func.mpi_mrecv(message_recv, status_recv);
 
 	std::stringstream ss_recv;
 	ss_recv.rdbuf()->pubsetbuf(buffer_recv.data(), buffer_recv.size());

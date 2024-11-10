@@ -49,7 +49,7 @@ namespace MPI_Wrapper
 
 
 
-	// MPI_Type_Contiguous_Pool(ie) = MPI_Type_contiguous(2^ie, Type_Base);
+	// MPI_Type_Contiguous_Pool(ie) = MPI_Type_contiguous(2^ie, type_base);
 	class MPI_Type_Contiguous_Pool
 	{
 	  public:
@@ -61,23 +61,26 @@ namespace MPI_Wrapper
 				this->type_pool.resize(exponent+1);
 				for(std::size_t ie=size_old; ie<this->type_pool.size(); ++ie)
 				{
-					MPI_CHECK( MPI_Type_contiguous( 1<<ie, this->Type_Base, &this->type_pool[ie] ) );
+					MPI_CHECK( MPI_Type_contiguous( 1<<ie, this->type_base, &this->type_pool[ie] ) );
 					MPI_CHECK( MPI_Type_commit( &this->type_pool[ie] ) );
 				}
 			}
 			return this->type_pool[exponent];
 		}
-		MPI_Type_Contiguous_Pool(const MPI_Datatype &Type_Base_in)
-			:Type_Base(Type_Base_in){}
+		MPI_Type_Contiguous_Pool(const MPI_Datatype &type_base_in)
+		{
+			MPI_CHECK( MPI_Type_dup(type_base_in, &this->type_base) );
+			MPI_CHECK( MPI_Type_commit( &this->type_base ) );
+		}
 		~MPI_Type_Contiguous_Pool()
 		{
 			for(std::size_t ie=0; ie<this->type_pool.size(); ++ie)
 				MPI_Type_free( &this->type_pool[ie] );
+			MPI_Type_free( &this->type_base );
 		}
 		std::vector<MPI_Datatype> type_pool;
-		const MPI_Datatype Type_Base;
+		MPI_Datatype type_base;
 	};
-	static MPI_Type_Contiguous_Pool char_contiguous(MPI_CHAR);
 }
 
 }

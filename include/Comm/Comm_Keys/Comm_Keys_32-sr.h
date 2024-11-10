@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include "../global/Cereal_Func.h"
+
 #include <vector>
 #include <functional>
 #include <mpi.h>
@@ -44,6 +46,7 @@ protected:
 	int rank_size;
 
 	const int tag_keys = 88;
+	Comm::Cereal_Func cereal_func;
 	std::shared_mutex lock_provide;
 };
 

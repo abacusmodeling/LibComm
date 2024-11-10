@@ -51,7 +51,7 @@ public:
 		Tdatas_recv &datas_recv);
 
 private:
-	void isend_data (const int rank_isend, const Tdatas_isend &datas_isend, std::string &str_isend, MPI_Request &request_isend, std::atomic<std::size_t> &memory_max_isend) const;
+	void isend_data (const int rank_isend, const Tdatas_isend &datas_isend, std::string &str_isend, MPI_Request &request_isend, std::atomic<std::size_t> &memory_max_isend);
 	void recv_data (Tdatas_recv &datas_recv, const MPI_Status status_recv, MPI_Message message_recv, std::atomic_flag &lock_set_value, std::atomic<std::size_t> &memory_max_isend);
 	void post_process(
 		std::vector<MPI_Request> &requests_isend,
@@ -67,6 +67,7 @@ public:
 
 private:
 	const int tag_data = 0;
+	Comm::Cereal_Func cereal_func;
 };
 
 }

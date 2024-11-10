@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include "MPI_Wrapper.h"
+
 #include <mpi.h>
 #include <sstream>
 #include <vector>
@@ -12,36 +14,45 @@
 namespace Comm
 {
 
-namespace Cereal_Func
+class Cereal_Func
 {
+  public:
+
+	// every 2^exponent_align char concatenate to 1 word
+	inline std::size_t align_stringstream(std::stringstream &ss);
+
 	// Send str
-	extern inline void mpi_send(const std::string &str, const std::size_t exponent_align, const int rank_recv, const int tag, const MPI_Comm &mpi_comm);
+	inline void mpi_send(const std::string &str, const std::size_t exponent_align, const int rank_recv, const int tag, const MPI_Comm &mpi_comm);
 
 	// Send data
 	template<typename... Ts>
-	extern void mpi_send(const int rank_recv, const int tag, const MPI_Comm &mpi_comm,
+	void mpi_send(const int rank_recv, const int tag, const MPI_Comm &mpi_comm,
 		const Ts&... data);
 
 	// Isend str
-	extern inline void mpi_isend(const std::string &str, const std::size_t exponent_align, const int rank_recv, const int tag, const MPI_Comm &mpi_comm, MPI_Request &request);
+	inline void mpi_isend(const std::string &str, const std::size_t exponent_align, const int rank_recv, const int tag, const MPI_Comm &mpi_comm, MPI_Request &request);
 
 	// Isend data using temporary memory str
 	template<typename... Ts>
-	extern void mpi_isend(const int rank_recv, const int tag, const MPI_Comm &mpi_comm,
+	void mpi_isend(const int rank_recv, const int tag, const MPI_Comm &mpi_comm,
 		std::string &str, MPI_Request &request,
 		const Ts&... data);
 
+	// Recv to return
+	inline std::vector<char> mpi_recv(const MPI_Comm &mpi_comm, MPI_Status &status);
+
 	// Recv to data
 	template<typename... Ts>
-	extern MPI_Status mpi_recv(const MPI_Comm &mpi_comm,
+	MPI_Status mpi_recv(const MPI_Comm &mpi_comm,
 		Ts&... data);
 
 	// Mrecv to return
-	extern inline std::vector<char> mpi_mrecv(MPI_Message &message_recv, const MPI_Status &status);
+	inline std::vector<char> mpi_mrecv(MPI_Message &message_recv, const MPI_Status &status);
 
-	// every 2^exponent_align char concatenate to 1 word
-	extern inline std::size_t align_stringstream(std::stringstream &ss);
-}
+  private:
+
+	MPI_Wrapper::MPI_Type_Contiguous_Pool char_contiguous{MPI_CHAR};
+};
 
 }
 

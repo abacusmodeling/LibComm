@@ -6,7 +6,6 @@
 #pragma once
 
 #include "Comm_Keys_31-sr.h"
-#include "../global/Cereal_Func.h"
 
 #include <mpi.h>
 #include <thread>
@@ -109,14 +108,14 @@ void Comm_Keys_31<Tkey,Tkeys_provide,Tkeys_require>::send_keys_require_mine(
 		cereal::BinaryOutputArchive ar(ss_isend);
 		ar(keys_require_mine);
 	}
-	const std::size_t exponent_align = Cereal_Func::align_stringstream(ss_isend);
+	const std::size_t exponent_align = this->cereal_func.align_stringstream(ss_isend);
 	const std::string str_isend = ss_isend.str();
 
 	std::vector<MPI_Request> requests_isend(this->rank_size);
 	for(int rank_recv_tmp=1; rank_recv_tmp<this->rank_size; ++rank_recv_tmp)
 	{
 		const int rank_recv = (this->rank_mine + rank_recv_tmp) % this->rank_size;
-		Cereal_Func::mpi_isend(str_isend, exponent_align, rank_recv, this->tag_keys, this->mpi_comm, requests_isend[rank_recv]);
+		this->cereal_func.mpi_isend(str_isend, exponent_align, rank_recv, this->tag_keys, this->mpi_comm, requests_isend[rank_recv]);
 		std::this_thread::yield();
 	}
 
@@ -140,7 +139,7 @@ void Comm_Keys_31<Tkey,Tkeys_provide,Tkeys_require>::recv_require_intersection(
 	std::vector<std::vector<Tkey>> &keys_trans_list)
 {
 	Tkeys_require keys_require;
-	const MPI_Status status_recv = Cereal_Func::mpi_recv( this->mpi_comm,
+	const MPI_Status status_recv = this->cereal_func.mpi_recv( this->mpi_comm,
 		keys_require);
 	const int rank_require = status_recv.MPI_SOURCE;
 	assert(this->tag_keys==status_recv.MPI_TAG);

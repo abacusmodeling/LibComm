@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include "../global/Cereal_Func.h"
+
 #include <vector>
 #include <functional>
 #include <mpi.h>
@@ -15,14 +17,14 @@ namespace Comm
 template<typename Tkey, typename Tkeys_provide, typename Tkeys_require>
 class Comm_Keys_31
 {
-public:
+  public:
 	Comm_Keys_31(const MPI_Comm &mpi_comm_in);
 
 	std::vector<std::vector<Tkey>> trans(
 		const Tkeys_provide &keys_provide_mine,
 		const Tkeys_require &keys_require_mine);
 
-protected:
+  protected:
 	void send_keys_require_mine(
 		const Tkeys_require &keys_require_mine);
 
@@ -40,6 +42,7 @@ protected:
 	int rank_size;
 
 	const int tag_keys = 99;
+	Comm::Cereal_Func cereal_func;
 };
 
 template<typename Tkey, typename Tkeys_provide, typename Tkeys_require>
