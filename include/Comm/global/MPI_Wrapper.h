@@ -6,6 +6,7 @@
 #pragma once
 
 #include <mpi.h>
+#include <omp.h>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -53,8 +54,13 @@ namespace MPI_Wrapper
 	class MPI_Type_Contiguous_Pool
 	{
 	  public:
-		MPI_Datatype operator()(const std::size_t exponent)
+		MPI_Datatype operator()(const std::size_t exponent)	const
 		{
+			return this->type_pool.at(exponent);
+		}
+		void resize(const std::size_t exponent)
+		{
+			#pragma omp critical(MPI_Type_Contiguous_Pool)
 			if(this->type_pool.size()<exponent+1)
 			{
 				const std::size_t size_old = this->type_pool.size();
@@ -65,7 +71,6 @@ namespace MPI_Wrapper
 					MPI_CHECK( MPI_Type_commit( &this->type_pool[ie] ) );
 				}
 			}
-			return this->type_pool[exponent];
 		}
 		MPI_Type_Contiguous_Pool(const MPI_Datatype &type_base_in)
 		{

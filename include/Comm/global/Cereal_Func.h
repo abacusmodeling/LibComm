@@ -18,6 +18,8 @@ class Cereal_Func
 {
   public:
 
+	inline Cereal_Func();
+
 	// every 2^exponent_align char concatenate to 1 word
 	inline std::size_t align_stringstream(std::stringstream &ss);
 

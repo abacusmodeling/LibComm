@@ -22,14 +22,17 @@ namespace Comm
 
 namespace Global_Func
 {
+#if defined(__MACH__)
 	inline std::size_t memory_available()
 	{
-#if defined(__MACH__)
 		// HACK: always assume half of the system memory free. Only for build and test on macOS
-		std::size_t pages = sysconf(_SC_PHYS_PAGES);
-		std::size_t page_size = sysconf(_SC_PAGE_SIZE);
+		const std::size_t pages = sysconf(_SC_PHYS_PAGES);
+		const std::size_t page_size = sysconf(_SC_PAGE_SIZE);
 		return pages * page_size / 2;
+	}
 #else
+	inline std::size_t memory_available()
+	{
 		constexpr std::size_t kB_to_B = 1024;
 		std::ifstream ifs("/proc/meminfo");
 		int num = 0;
