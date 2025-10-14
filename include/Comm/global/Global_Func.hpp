@@ -57,8 +57,8 @@ namespace Global_Func
 			}
 		}
 		throw std::runtime_error("read /proc/meminfo error in " + std::string(__FILE__) + " line " + std::to_string(__LINE__));
-#endif
 	}
+#endif
 }
 
 }
