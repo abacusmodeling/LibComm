@@ -6,9 +6,11 @@
 #pragma once
 
 #include "Comm_Trans.h"
+#include "Memory_Check.h"
 #include "../global/Cereal_Func.h"
 
 #include <vector>
+#include <queue>
 #include <string>
 #include <stdexcept>
 
@@ -65,15 +67,15 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::communicate(
 {
 	// initialization
 	int rank_isend_tmp = 0;
-	int rank_recv_working = -1;
 
 	std::vector<MPI_Request> requests_isend(comm_size);
 	std::vector<std::string> strs_isend(comm_size);
 	std::vector<std::future<void>> futures_isend(comm_size);
 	std::vector<std::future<void>> futures_recv(comm_size);
+	std::queue<std::pair<MPI_Status,MPI_Message>> status_message_s_recv;
 	std::atomic_flag lock_set_value = ATOMIC_FLAG_INIT;
-	std::atomic<std::size_t> memory_max_isend(0);
-	std::atomic<std::size_t> memory_max_recv(0);
+	Memory_Check memory_isend;
+	Memory_Check memory_recv;
 
 	std::future<void> future_post_process = std::async (std::launch::async,
 		&Comm_Trans::post_process, this,
@@ -81,24 +83,30 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::communicate(
 
 	while (future_post_process.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
 	{
-		int flag_iprobe=0;
-		MPI_Status status_recv;
-		MPI_Message message_recv;
-		MPI_CHECK (MPI_Improbe(MPI_ANY_SOURCE, this->tag_data, this->mpi_comm, &flag_iprobe, &message_recv, &status_recv));
-		if (flag_iprobe && rank_recv_working!=status_recv.MPI_SOURCE && memory_enough(memory_max_recv))
 		{
-			futures_recv[status_recv.MPI_SOURCE] = std::async (std::launch::async,
-				&Comm_Trans::recv_data, this,
-				std::ref(datas_recv), status_recv, message_recv, std::ref(lock_set_value), std::ref(memory_max_recv));
-			rank_recv_working = status_recv.MPI_SOURCE;
+			int flag_iprobe=0;
+			MPI_Status status_recv;
+			MPI_Message message_recv;
+			MPI_CHECK (MPI_Improbe(MPI_ANY_SOURCE, this->tag_data, this->mpi_comm, &flag_iprobe, &message_recv, &status_recv));
+			if (flag_iprobe)
+				status_message_s_recv.emplace(status_recv, message_recv);
 		}
 
-		if (rank_isend_tmp < this->comm_size && memory_enough(memory_max_isend))
+		if (!status_message_s_recv.empty() && memory_recv.enough())
+		{
+			const std::pair<MPI_Status,MPI_Message> status_message_recv = status_message_s_recv.front();
+			status_message_s_recv.pop();
+			futures_recv[status_message_recv.first.MPI_SOURCE] = std::async (std::launch::async,
+				&Comm_Trans::recv_data, this,
+				std::ref(datas_recv), status_message_recv.first, status_message_recv.second, std::ref(lock_set_value), std::ref(memory_recv));
+		}
+
+		if (rank_isend_tmp < this->comm_size && memory_isend.enough())
 		{
 			const int rank_isend = (rank_isend_tmp + this->rank_mine) % this->comm_size;
 			futures_isend[rank_isend] = std::async (std::launch::async,
 				&Comm_Trans::isend_data, this,
-				rank_isend, std::cref(datas_isend), std::ref(strs_isend[rank_isend]), std::ref(requests_isend[rank_isend]), std::ref(memory_max_isend));
+				rank_isend, std::cref(datas_isend), std::ref(strs_isend[rank_isend]), std::ref(requests_isend[rank_isend]), std::ref(memory_isend));
 			++rank_isend_tmp;
 		}
 	}
@@ -112,7 +120,7 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::isend_data(
 	const Tdatas_isend &datas_isend,
 	std::string &str_isend,
 	MPI_Request &request_isend,
-	std::atomic<std::size_t> &memory_max_isend)
+	Memory_Check &memory_isend)
 {
 	std::stringstream ss_isend;
 	{
@@ -134,7 +142,8 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::isend_data(
 	} // end cereal::BinaryOutputArchive
 	const std::size_t exponent_align = this->cereal_func.align_stringstream(ss_isend);
 	str_isend = ss_isend.str();
-	memory_max_isend.store( std::max(str_isend.size()*sizeof(char), memory_max_isend.load()) );
+	memory_isend.max_used = std::max(str_isend.size()*sizeof(char), memory_isend.max_used.load());
+	memory_isend.first_set = true;
 	this->cereal_func.mpi_isend(str_isend, exponent_align, rank_isend, this->tag_data, this->mpi_comm, request_isend);
 }
 
@@ -146,13 +155,14 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::recv_data (
 	const MPI_Status status_recv,
 	MPI_Message message_recv,
 	std::atomic_flag &lock_set_value,
-	std::atomic<std::size_t> &memory_max_recv)
+	Memory_Check &memory_recv)
 {
 	std::vector<char> buffer_recv = this->cereal_func.mpi_mrecv(message_recv, status_recv);
 
 	std::stringstream ss_recv;
 	ss_recv.rdbuf()->pubsetbuf(buffer_recv.data(), buffer_recv.size());
-	memory_max_recv.store( std::max(buffer_recv.size()*sizeof(char), memory_max_recv.load()) );
+	memory_recv.max_used = std::max(buffer_recv.size()*sizeof(char), memory_recv.max_used.load());
+	memory_recv.first_set = true;
 
 	{
 		cereal::BinaryInputArchive iar(ss_recv);
