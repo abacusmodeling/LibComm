@@ -16,8 +16,8 @@ class Memory_Check
 {
   public:
 	bool first_check = false;
-	std::atomic<bool> first_set = false;
-	std::atomic<std::size_t> max_used = 0;
+	std::atomic<bool> first_set{false};
+	std::atomic<std::size_t> max_used{0};
 
 	bool enough()
 	{
