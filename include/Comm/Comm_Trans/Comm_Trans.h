@@ -6,7 +6,9 @@
 #pragma once
 
 #include "../Comm_Tools.h"
+#include "../global/Cereal_Func.h"
 #include <mpi.h>
+#include <vector>
 #include <functional>
 #include <future>
 #include <sstream>
@@ -52,7 +54,16 @@ public:
 
 private:
 	void isend_data (const int rank_isend, const Tdatas_isend &datas_isend, std::string &str_isend, MPI_Request &request_isend, Memory_Check &memory__isend);
-	void recv_data (Tdatas_recv &datas_recv, const MPI_Status status_recv, MPI_Message message_recv, std::atomic_flag &lock_set_value, Memory_Check &memory__isend);
+	void recv_data (
+		const MPI_Status status_recv,
+		const MPI_Message message_recv,
+		Memory_Check &memory_recv,
+		std::vector<char> &buffer_recv);
+	void iar_data (
+		const int rank_recv,
+		std::vector<char> &buffer_recv,
+		std::atomic_flag &lock_set_value,
+		Tdatas_recv &datas_recv);
 	void post_process(
 		std::vector<MPI_Request> &requests_isend,
 		std::vector<std::string> &strs_isend,

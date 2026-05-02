@@ -7,12 +7,12 @@
 
 #include "Comm_Trans.h"
 #include "Memory_Check.h"
-#include "../global/Cereal_Func.h"
 
 #include <vector>
 #include <queue>
 #include <string>
 #include <stdexcept>
+#include <cassert>
 
 #include <cereal/archives/binary.hpp>
 #include <cereal/types/tuple.hpp>
@@ -68,10 +68,11 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::communicate(
 	// initialization
 	int rank_isend_tmp = 0;
 
-	std::vector<MPI_Request> requests_isend(comm_size);
-	std::vector<std::string> strs_isend(comm_size);
-	std::vector<std::future<void>> futures_isend(comm_size);
-	std::vector<std::future<void>> futures_recv(comm_size);
+	std::vector<MPI_Request> requests_isend(this->comm_size);
+	std::vector<std::string> strs_isend(this->comm_size);
+	std::vector<std::future<void>> futures_isend(this->comm_size);
+	std::vector<std::future<void>> futures_recv(this->comm_size);
+	std::vector<std::vector<char>> buffers_recv(this->comm_size);
 	std::queue<std::pair<MPI_Status,MPI_Message>> status_message_s_recv;
 	std::atomic_flag lock_set_value = ATOMIC_FLAG_INIT;
 	Memory_Check memory_isend;
@@ -94,11 +95,16 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::communicate(
 
 		if (!status_message_s_recv.empty() && memory_recv.enough())
 		{
-			const std::pair<MPI_Status,MPI_Message> status_message_recv = status_message_s_recv.front();
+			const MPI_Status status_recv = status_message_s_recv.front().first;
+			const MPI_Message message_recv = status_message_s_recv.front().second;
+			const int rank_recv = status_recv.MPI_SOURCE;
 			status_message_s_recv.pop();
-			futures_recv[status_message_recv.first.MPI_SOURCE] = std::async (std::launch::async,
-				&Comm_Trans::recv_data, this,
-				std::ref(datas_recv), status_message_recv.first, status_message_recv.second, std::ref(lock_set_value), std::ref(memory_recv));
+
+			this->recv_data( status_recv, message_recv, memory_recv, buffers_recv[rank_recv]);
+
+			futures_recv[rank_recv] = std::async (std::launch::async,
+				&Comm_Trans::iar_data, this,
+				rank_recv, std::ref(buffers_recv[rank_recv]), std::ref(lock_set_value), std::ref(datas_recv));
 		}
 
 		if (rank_isend_tmp < this->comm_size && memory_isend.enough())
@@ -151,19 +157,27 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::isend_data(
 
 template<typename Tkey, typename Tvalue, typename Tdatas_isend, typename Tdatas_recv>
 void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::recv_data (
-	Tdatas_recv &datas_recv,
 	const MPI_Status status_recv,
-	MPI_Message message_recv,
-	std::atomic_flag &lock_set_value,
-	Memory_Check &memory_recv)
+	const MPI_Message message_recv,
+	Memory_Check &memory_recv,
+	std::vector<char> &buffer_recv)
 {
-	std::vector<char> buffer_recv = this->cereal_func.mpi_mrecv(message_recv, status_recv);
-
-	std::stringstream ss_recv;
-	ss_recv.rdbuf()->pubsetbuf(buffer_recv.data(), buffer_recv.size());
+	MPI_Message message_recv_tmp = message_recv;
+	buffer_recv = this->cereal_func.mpi_mrecv(message_recv_tmp, status_recv);
+	assert(message_recv_tmp == MPI_MESSAGE_NULL);
 	memory_recv.max_used = std::max(buffer_recv.size()*sizeof(char), memory_recv.max_used.load());
 	memory_recv.first_set = true;
+}
 
+template<typename Tkey, typename Tvalue, typename Tdatas_isend, typename Tdatas_recv>
+void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::iar_data (
+	const int rank_recv,
+	std::vector<char> &buffer_recv,
+	std::atomic_flag &lock_set_value,
+	Tdatas_recv &datas_recv)
+{
+	std::stringstream ss_recv;
+	ss_recv.rdbuf()->pubsetbuf(buffer_recv.data(), buffer_recv.size());
 	{
 		cereal::BinaryInputArchive iar(ss_recv);
 		size_t size_item;	iar(size_item);
@@ -207,7 +221,7 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::recv_data (
 		}
 		else if (this->flag_lock_set_value==Comm_Tools::Lock_Type::Copy_merge)
 		{
-			Tdatas_recv datas_local = this->init_datas_local (status_recv.MPI_SOURCE);
+			Tdatas_recv datas_local = this->init_datas_local (rank_recv);
 			for (size_t i=0; i<size_item; ++i)
 			{
 				Tkey key;
@@ -226,9 +240,11 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::recv_data (
 				+" file "+std::string(__FILE__)
 				+" line "+std::to_string(__LINE__)
 				+" rank_mine "+std::to_string(this->rank_mine)
-				+" rank_recv "+std::to_string(status_recv.MPI_SOURCE));
+				+" rank_recv "+std::to_string(rank_recv));
 		}
 	} // end cereal::BinaryInputArchive
+	buffer_recv.clear();
+	buffer_recv.shrink_to_fit();
 }
 
 
