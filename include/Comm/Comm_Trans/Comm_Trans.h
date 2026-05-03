@@ -52,8 +52,23 @@ public:
 		const Tdatas_isend &datas_isend,
 		Tdatas_recv &datas_recv);
 
+public:
+	enum class State_Send {unstart, begin_oar, finish_oar, begin_isend, finish_isend};
+	enum class State_Recv {};
+
 private:
-	void isend_data (const int rank_isend, const Tdatas_isend &datas_isend, std::string &str_isend, MPI_Request &request_isend, Memory_Check &memory__isend);
+	std::size_t oar_data(
+		const int rank_isend,
+		const Tdatas_isend &datas_isend,
+		std::string &str_isend,
+		State_Send &state_send,
+		Memory_Check &memory_isend);
+	void isend_data(
+		const int rank_isend,
+		const std::size_t exponent_align,
+		std::string &str_isend,
+		MPI_Request &request_isend,
+		State_Send &state_send);
 	void recv_data (
 		const MPI_Status status_recv,
 		const MPI_Message message_recv,
@@ -67,7 +82,7 @@ private:
 	void post_process(
 		std::vector<MPI_Request> &requests_isend,
 		std::vector<std::string> &strs_isend,
-		std::vector<std::future<void>> &futures_isend,
+		std::vector<State_Send> &states_send,
 		std::vector<std::future<void>> &futures_recv) const;
 
 public:

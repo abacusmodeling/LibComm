@@ -44,6 +44,7 @@ Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::Comm_Trans(const MPI_Comm &mpi
 		{ throw std::logic_error("Function add_datas not set."); };
 }
 
+
 /*
 template<typename Tkey, typename Tvalue, typename Tdatas_isend, typename Tdatas_recv>
 Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::Comm_Trans(const Comm_Trans &com)
@@ -60,6 +61,7 @@ Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::Comm_Trans(const Comm_Trans &c
 }
 */
 
+
 template<typename Tkey, typename Tvalue, typename Tdatas_isend, typename Tdatas_recv>
 void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::communicate(
 	const Tdatas_isend &datas_isend,
@@ -70,17 +72,18 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::communicate(
 
 	std::vector<MPI_Request> requests_isend(this->comm_size);
 	std::vector<std::string> strs_isend(this->comm_size);
-	std::vector<std::future<void>> futures_isend(this->comm_size);
+	std::vector<std::future<std::size_t>> futures_oar(this->comm_size);
 	std::vector<std::future<void>> futures_recv(this->comm_size);
 	std::vector<std::vector<char>> buffers_recv(this->comm_size);
 	std::queue<std::pair<MPI_Status,MPI_Message>> status_message_s_recv;
+	std::vector<State_Send> states_send(this->comm_size, State_Send::unstart);
 	std::atomic_flag lock_set_value = ATOMIC_FLAG_INIT;
 	Memory_Check memory_isend;
 	Memory_Check memory_recv;
 
 	std::future<void> future_post_process = std::async (std::launch::async,
 		&Comm_Trans::post_process, this,
-		std::ref(requests_isend), std::ref(strs_isend), std::ref(futures_isend), std::ref(futures_recv));
+		std::ref(requests_isend), std::ref(strs_isend), std::ref(states_send), std::ref(futures_recv));
 
 	while (future_post_process.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
 	{
@@ -100,20 +103,46 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::communicate(
 			const int rank_recv = status_recv.MPI_SOURCE;
 			status_message_s_recv.pop();
 
-			this->recv_data( status_recv, message_recv, memory_recv, buffers_recv[rank_recv]);
+			this->recv_data(
+				status_recv,
+				message_recv,
+				memory_recv,
+				buffers_recv[rank_recv]);
 
 			futures_recv[rank_recv] = std::async (std::launch::async,
 				&Comm_Trans::iar_data, this,
-				rank_recv, std::ref(buffers_recv[rank_recv]), std::ref(lock_set_value), std::ref(datas_recv));
+					rank_recv,
+					std::ref(buffers_recv[rank_recv]),
+					std::ref(lock_set_value),
+					std::ref(datas_recv));
 		}
 
 		if (rank_isend_tmp < this->comm_size && memory_isend.enough())
 		{
 			const int rank_isend = (rank_isend_tmp + this->rank_mine) % this->comm_size;
-			futures_isend[rank_isend] = std::async (std::launch::async,
-				&Comm_Trans::isend_data, this,
-				rank_isend, std::cref(datas_isend), std::ref(strs_isend[rank_isend]), std::ref(requests_isend[rank_isend]), std::ref(memory_isend));
+			futures_oar[rank_isend] = std::async (std::launch::async,
+				&Comm_Trans::oar_data, this,
+					rank_isend,
+					std::cref(datas_isend),
+					std::ref(strs_isend[rank_isend]),
+					std::ref(states_send[rank_isend]),
+					std::ref(memory_isend));
 			++rank_isend_tmp;
+		}
+
+		for(std::size_t rank_isend_tmp2=0; rank_isend_tmp2<this->comm_size; ++rank_isend_tmp2)
+		{
+			const int rank_isend = (rank_isend_tmp2 + this->rank_mine) % this->comm_size;
+			if(futures_oar[rank_isend].valid())
+			{
+				const std::size_t exponent_align = futures_oar[rank_isend].get();
+				this->isend_data(
+					rank_isend,
+					exponent_align,
+					strs_isend[rank_isend],
+					requests_isend[rank_isend],
+					states_send[rank_isend]);
+			}
 		}
 	}
 	future_post_process.get();
@@ -121,13 +150,15 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::communicate(
 
 
 template<typename Tkey, typename Tvalue, typename Tdatas_isend, typename Tdatas_recv>
-void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::isend_data(
+std::size_t Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::oar_data(
 	const int rank_isend,
 	const Tdatas_isend &datas_isend,
 	std::string &str_isend,
-	MPI_Request &request_isend,
+	State_Send &state_send,
 	Memory_Check &memory_isend)
 {
+	assert(state_send == State_Send::unstart);
+	state_send = State_Send::begin_oar;
 	std::stringstream ss_isend;
 	{
 		cereal::BinaryOutputArchive oar(ss_isend);
@@ -147,12 +178,26 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::isend_data(
 		oar(size_item);
 	} // end cereal::BinaryOutputArchive
 	const std::size_t exponent_align = this->cereal_func.align_stringstream(ss_isend);
-	str_isend = ss_isend.str();
+	str_isend = std::move(ss_isend.str());
 	memory_isend.max_used = std::max(str_isend.size()*sizeof(char), memory_isend.max_used.load());
 	memory_isend.first_set = true;
-	this->cereal_func.mpi_isend(str_isend, exponent_align, rank_isend, this->tag_data, this->mpi_comm, request_isend);
+	state_send = State_Send::finish_oar;
+	return exponent_align;
 }
 
+
+template<typename Tkey, typename Tvalue, typename Tdatas_isend, typename Tdatas_recv>
+void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::isend_data(
+	const int rank_isend,
+	const std::size_t exponent_align,
+	std::string &str_isend,
+	MPI_Request &request_isend,
+	State_Send &state_send)
+{
+	assert(state_send == State_Send::finish_oar);
+	this->cereal_func.mpi_isend(str_isend, exponent_align, rank_isend, this->tag_data, this->mpi_comm, request_isend);
+	state_send = State_Send::begin_isend;
+}
 
 
 template<typename Tkey, typename Tvalue, typename Tdatas_isend, typename Tdatas_recv>
@@ -168,6 +213,7 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::recv_data (
 	memory_recv.max_used = std::max(buffer_recv.size()*sizeof(char), memory_recv.max_used.load());
 	memory_recv.first_set = true;
 }
+
 
 template<typename Tkey, typename Tvalue, typename Tdatas_isend, typename Tdatas_recv>
 void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::iar_data (
@@ -252,7 +298,7 @@ template<typename Tkey, typename Tvalue, typename Tdatas_isend, typename Tdatas_
 void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::post_process(
 	std::vector<MPI_Request> &requests_isend,
 	std::vector<std::string> &strs_isend,
-	std::vector<std::future<void>> &futures_isend,
+	std::vector<State_Send> &states_send,
 	std::vector<std::future<void>> &futures_recv) const
 {
 	int rank_isend_free_tmp = 0;
@@ -263,17 +309,16 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::post_process(
 		while (rank_isend_free_tmp < this->comm_size)
 		{
 			const int rank_isend_free = (this->rank_mine+rank_isend_free_tmp)%this->comm_size;
-			if (futures_isend[rank_isend_free].valid()
-				&& futures_isend[rank_isend_free].wait_for(std::chrono::seconds(0)) == std::future_status::ready)
+			if(states_send[rank_isend_free] == State_Send::begin_isend)
 			{
 				int flag_finish=0;
 				MPI_CHECK (MPI_Test (&(requests_isend[rank_isend_free]), &flag_finish, MPI_STATUS_IGNORE));
 				if (flag_finish)
 				{
-	//				MPI_CHECK (MPI_Request_free (&requests_isend[rank_isend_free]));
-					futures_isend[rank_isend_free].get();
+					//MPI_CHECK (MPI_Request_free (&requests_isend[rank_isend_free]));
 					strs_isend[rank_isend_free].clear();
 					++rank_isend_free_tmp;
+					states_send[rank_isend_free] = State_Send::finish_isend;
 				}
 				else{ break; }
 			}
