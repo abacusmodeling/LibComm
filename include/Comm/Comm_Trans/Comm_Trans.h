@@ -54,36 +54,38 @@ public:
 
 public:
 	enum class State_Send {unstart, begin_oar, finish_oar, begin_isend, finish_isend};
-	enum class State_Recv {};
+	enum class State_Recv {unstart, begin_recv, finish_recv, begin_iar, finish_iar};
 
 private:
 	std::size_t oar_data(
 		const int rank_isend,
 		const Tdatas_isend &datas_isend,
 		std::string &str_isend,
-		State_Send &state_send,
+		std::atomic<State_Send> &state_send,
 		Memory_Check &memory_isend);
 	void isend_data(
 		const int rank_isend,
 		const std::size_t exponent_align,
 		std::string &str_isend,
 		MPI_Request &request_isend,
-		State_Send &state_send);
+		std::atomic<State_Send> &state_send);
 	void recv_data (
 		const MPI_Status status_recv,
 		const MPI_Message message_recv,
 		Memory_Check &memory_recv,
-		std::vector<char> &buffer_recv);
+		std::vector<char> &buffer_recv,
+		std::atomic<State_Recv> &state_recv);
 	void iar_data (
 		const int rank_recv,
 		std::vector<char> &buffer_recv,
 		std::atomic_flag &lock_set_value,
-		Tdatas_recv &datas_recv);
+		Tdatas_recv &datas_recv,
+		std::atomic<State_Recv> &state_recv);
 	void post_process(
 		std::vector<MPI_Request> &requests_isend,
 		std::vector<std::string> &strs_isend,
-		std::vector<State_Send> &states_send,
-		std::vector<std::future<void>> &futures_recv) const;
+		std::vector<std::atomic<State_Send>> &states_send,
+		std::vector<std::atomic<State_Recv>> &states_recv) const;
 
 public:
 	const MPI_Comm &mpi_comm;
