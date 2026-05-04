@@ -83,14 +83,11 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::communicate(
 	Memory_Check memory_recv;
 
 	// initialization
-	int rank_isend_tmp = 0;
+	int rank_isend_tmp1=1, rank_isend_tmp2=1, rank_isend_tmp3=1;
 
-	std::future<void> future_post_process = std::async (std::launch::async,
-		&Comm_Trans::post_process, this,
-		std::ref(requests_isend), std::ref(buffers_isend), std::ref(states_send), std::ref(states_recv));
-
-	while (future_post_process.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
+	while (!check_finish(states_send, states_recv))
 	{
+		while(true)
 		{
 			int flag_iprobe=0;
 			MPI_Status status_recv;
@@ -98,6 +95,8 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::communicate(
 			MPI_CHECK (MPI_Improbe(MPI_ANY_SOURCE, this->tag_data, this->mpi_comm, &flag_iprobe, &message_recv, &status_recv));
 			if (flag_iprobe)
 				status_message_s_recv.emplace(status_recv, message_recv);
+			else
+				break;
 		}
 
 		if (!status_message_s_recv.empty() && memory_recv.enough())
@@ -123,9 +122,9 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::communicate(
 					std::ref(states_recv[rank_recv]));
 		}
 
-		if (rank_isend_tmp < this->comm_size && memory_isend.enough())
+		if (rank_isend_tmp1<this->comm_size+1 && memory_isend.enough())
 		{
-			const int rank_isend = (rank_isend_tmp + this->rank_mine) % this->comm_size;
+			const int rank_isend = (rank_isend_tmp1 + this->rank_mine) % this->comm_size;
 			futures_oar[rank_isend] = std::async (std::launch::async,
 				&Comm_Trans::oar_data, this,
 					rank_isend,
@@ -133,10 +132,10 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::communicate(
 					std::ref(buffers_isend[rank_isend]),
 					std::ref(states_send[rank_isend]),
 					std::ref(memory_isend));
-			++rank_isend_tmp;
+			++rank_isend_tmp1;
 		}
 
-		for(std::size_t rank_isend_tmp2=0; rank_isend_tmp2<this->comm_size; ++rank_isend_tmp2)
+		while(rank_isend_tmp2<rank_isend_tmp1)
 		{
 			const int rank_isend = (rank_isend_tmp2 + this->rank_mine) % this->comm_size;
 			if(futures_oar[rank_isend].valid())
@@ -148,10 +147,30 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::communicate(
 					buffers_isend[rank_isend],
 					requests_isend[rank_isend],
 					states_send[rank_isend]);
+				++rank_isend_tmp2;
 			}
 		}
+
+		while(rank_isend_tmp3<rank_isend_tmp2)
+		{
+			const int rank_isend = (rank_isend_tmp3 + this->rank_mine) % this->comm_size;
+			if(states_send[rank_isend] == State_Send::begin_isend)
+			{
+				int flag_finish=0;
+				MPI_CHECK (MPI_Test (&(requests_isend[rank_isend]), &flag_finish, MPI_STATUS_IGNORE));
+				if (flag_finish)
+				{
+					//MPI_CHECK (MPI_Request_free (&requests_isend[rank_isend]));
+					buffers_isend[rank_isend].clear();
+					buffers_isend[rank_isend].shrink_to_fit();
+					states_send[rank_isend] = State_Send::finish_isend;
+					++rank_isend_tmp3;
+				}
+				else {break;}
+			}
+			else {break;}
+		}
 	}
-	future_post_process.get();
 }
 
 
@@ -231,7 +250,7 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::iar_data (
 	std::vector<char> &buffer_recv,
 	std::atomic_flag &lock_set_value,
 	Tdatas_recv &datas_recv,
-	std::atomic<State_Recv> &state_recv)
+	std::atomic<State_Recv> &state_recv) const
 {
 	assert(state_recv == State_Recv::finish_recv);
 	state_recv = State_Recv::begin_iar;
@@ -309,47 +328,23 @@ void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::iar_data (
 
 
 template<typename Tkey, typename Tvalue, typename Tdatas_isend, typename Tdatas_recv>
-void Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::post_process(
-	std::vector<MPI_Request> &requests_isend,
-	std::vector<std::string> &buffers_isend,
-	std::vector<std::atomic<State_Send>> &states_send,
-	std::vector<std::atomic<State_Recv>> &states_recv) const
+bool Comm_Trans<Tkey,Tvalue,Tdatas_isend,Tdatas_recv>::check_finish(
+	const std::vector<std::atomic<State_Send>> &states_send,
+	const std::vector<std::atomic<State_Recv>> &states_recv) const
 {
-	int rank_isend_free_tmp = 0;
-	int rank_recv_free_tmp = 0;
-	while (rank_isend_free_tmp < this->comm_size
-		|| rank_recv_free_tmp < this->comm_size)
+	for(int rank_isend_tmp=this->comm_size; rank_isend_tmp>0; --rank_isend_tmp)
 	{
-		while (rank_isend_free_tmp < this->comm_size)
-		{
-			const int rank_isend_free = (this->rank_mine+rank_isend_free_tmp)%this->comm_size;
-			if(states_send[rank_isend_free] == State_Send::begin_isend)
-			{
-				int flag_finish=0;
-				MPI_CHECK (MPI_Test (&(requests_isend[rank_isend_free]), &flag_finish, MPI_STATUS_IGNORE));
-				if (flag_finish)
-				{
-					//MPI_CHECK (MPI_Request_free (&requests_isend[rank_isend_free]));
-					buffers_isend[rank_isend_free].clear();
-					++rank_isend_free_tmp;
-					states_send[rank_isend_free] = State_Send::finish_isend;
-				}
-				else{ break; }
-			}
-			else{ break; }
-		}
-
-		while (rank_recv_free_tmp < this->comm_size)
-		{
-			const int rank_recv_free = (this->rank_mine+rank_recv_free_tmp)%this->comm_size;
-			if (states_recv[rank_recv_free] == State_Recv::finish_iar)
-				++rank_recv_free_tmp;
-			else
-				break;
-		}
-
-		std::this_thread::yield();
+		const int rank_isend = (rank_isend_tmp + this->rank_mine) % this->comm_size;
+		if(states_send[rank_isend] != State_Send::finish_isend)
+			return false;
 	}
+	for(int rank_recv_tmp=0; rank_recv_tmp<this->comm_size; ++rank_recv_tmp)
+	{
+		const int rank_recv = (rank_recv_tmp + this->rank_mine) % this->comm_size;
+		if(states_recv[rank_recv] != State_Recv::finish_iar)
+			return false;
+	}
+	return true;
 }
 
 }

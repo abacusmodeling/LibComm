@@ -80,12 +80,10 @@ private:
 		std::vector<char> &buffer_recv,
 		std::atomic_flag &lock_set_value,
 		Tdatas_recv &datas_recv,
-		std::atomic<State_Recv> &state_recv);
-	void post_process(
-		std::vector<MPI_Request> &requests_isend,
-		std::vector<std::string> &strs_isend,
-		std::vector<std::atomic<State_Send>> &states_send,
-		std::vector<std::atomic<State_Recv>> &states_recv) const;
+		std::atomic<State_Recv> &state_recv) const;
+	bool check_finish(
+		const std::vector<std::atomic<State_Send>> &states_send,
+		const std::vector<std::atomic<State_Recv>> &states_recv) const;
 
 public:
 	const MPI_Comm &mpi_comm;
