@@ -7,6 +7,7 @@
 
 #include "../Comm_Tools.h"
 #include "../global/Cereal_Func.h"
+#include "State.h"
 #include <mpi.h>
 #include <vector>
 #include <functional>
@@ -51,10 +52,6 @@ public:
 	void communicate(
 		const Tdatas_isend &datas_isend,
 		Tdatas_recv &datas_recv);
-
-public:
-	enum class State_Send {unstart, begin_oar, finish_oar, begin_isend, finish_isend};
-	enum class State_Recv {unstart, begin_recv, finish_recv, begin_iar, finish_iar};
 
 private:
 	std::size_t oar_data(
