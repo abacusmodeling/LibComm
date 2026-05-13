@@ -8,6 +8,7 @@
 #include "../global/Global_Func.h"
 #include "State.h"
 
+#include <vector>
 #include <atomic>
 #include <algorithm>
 

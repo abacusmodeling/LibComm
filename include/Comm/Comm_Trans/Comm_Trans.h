@@ -57,19 +57,19 @@ private:
 	std::size_t oar_data(
 		const int rank_isend,
 		const Tdatas_isend &datas_isend,
-		std::string &str_isend,
+		std::string &buffer_isend,
 		std::atomic<State_Send> &state_send,
-		Memory_Check &memory_isend);
+		Memory_Check &memory);
 	void isend_data(
 		const int rank_isend,
 		const std::size_t exponent_align,
-		std::string &str_isend,
+		std::string &buffer_isend,
 		MPI_Request &request_isend,
 		std::atomic<State_Send> &state_send);
 	void recv_data (
 		const MPI_Status status_recv,
 		const MPI_Message message_recv,
-		Memory_Check &memory_recv,
+		Memory_Check &memory,
 		std::vector<char> &buffer_recv,
 		std::atomic<State_Recv> &state_recv);
 	void iar_data (
