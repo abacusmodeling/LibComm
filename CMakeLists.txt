@@ -1,4 +1,7 @@
 cmake_minimum_required(VERSION 3.23)
+if(POLICY CMP0144) # https://cmake.org/cmake/help/git-stage/policy/CMP0144.html
+  cmake_policy(SET CMP0144 NEW)
+endif()
 
 set(LIBCOMM_PACKAGE_VERSION "0.2.0" CACHE STRING
   "Package version used for generated LibCommConfigVersion.cmake when the source tree has no explicit release version.")
