@@ -1,0 +1,68 @@
+name: Test with CMake
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y \
+            libcereal-dev \
+            libopenmpi-dev \
+            ninja-build \
+            openmpi-bin
+
+      - name: Configure
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/install" \
+            -DBUILD_TESTING=ON
+
+      - name: Check public headers
+        run: cmake --build build --target libcomm_public_header_check -j $(nproc)
+
+      - name: Run tests
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Install
+        run: cmake --install build
+
+      - name: Test installed package
+        run: |
+          mkdir -p consumer
+          cat > consumer/CMakeLists.txt <<'EOF'
+          cmake_minimum_required(VERSION 3.23)
+          project(LibCommConsumer LANGUAGES CXX)
+
+          find_package(LibComm CONFIG REQUIRED)
+
+          add_executable(libcomm_consumer main.cpp)
+          target_link_libraries(libcomm_consumer PRIVATE LibComm::LibComm)
+          EOF
+
+          cat > consumer/main.cpp <<'EOF'
+          #include <Comm/Comm_Assemble/Comm_Assemble.h>
+
+          int main()
+          {
+              return 0;
+          }
+          EOF
+
+          cmake -S consumer -B consumer/build -G Ninja \
+            -DCMAKE_PREFIX_PATH="${{ github.workspace }}/install"
+          cmake --build consumer/build --parallel 2
