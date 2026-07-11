@@ -14,12 +14,8 @@ include(CTest)
 
 list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-option(LIBCOMM_INSTALL_EXAMPLE_HEADERS
-  "Install example helper headers under include/Comm/example."
-  ON)
-option(LIBCOMM_ENABLE_HEADER_CHECK
-  "Add an explicit, non-default target that checks public headers for self-contained compilation."
-  ON)
+option(LIBCOMM_INSTALL_EXAMPLE_HEADERS "Install example helper headers under include/Comm/example." ON)
+option(BUILD_TESTING "Enable unittest: check public headers for self-contained compilation." OFF)
 
 find_package(Threads REQUIRED)
 find_package(MPI REQUIRED COMPONENTS CXX)
@@ -87,31 +83,28 @@ install(FILES
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE"
   DESTINATION "${CMAKE_INSTALL_DOCDIR}")
 
-if(BUILD_TESTING AND LIBCOMM_ENABLE_HEADER_CHECK)
-  add_custom_target(libcomm_public_header_check)
+if(BUILD_TESTING)
   set(_libcomm_header_check_index 0)
   foreach(_libcomm_header IN LISTS LIBCOMM_PUBLIC_HEADERS)
     math(EXPR _libcomm_header_check_index "${_libcomm_header_check_index} + 1")
     file(RELATIVE_PATH _libcomm_header_rel
       "${CMAKE_CURRENT_SOURCE_DIR}/include"
       "${_libcomm_header}")
+    set(_libcomm_header_check_target
+      "libcomm_public_header_check_${_libcomm_header_check_index}")
     set(_libcomm_header_check_source
-      "${CMAKE_CURRENT_BINARY_DIR}/header_check_${_libcomm_header_check_index}.cpp")
+      "${CMAKE_CURRENT_BINARY_DIR}/${_libcomm_header_check_target}.cpp")
     file(WRITE "${_libcomm_header_check_source}"
-      "#include <${_libcomm_header_rel}>\nint main() { return 0; }\n")
-    add_executable(libcomm_header_check_${_libcomm_header_check_index}
-      EXCLUDE_FROM_ALL
+      "#include <${_libcomm_header_rel}>\n"
+      "int main() { return 0; }\n")
+    add_executable(${_libcomm_header_check_target}
       "${_libcomm_header_check_source}")
-    target_link_libraries(libcomm_header_check_${_libcomm_header_check_index}
+    target_link_libraries(${_libcomm_header_check_target}
       PRIVATE LibComm::LibComm)
-    add_dependencies(libcomm_public_header_check
-      libcomm_header_check_${_libcomm_header_check_index})
+    add_test(
+      NAME "${_libcomm_header_check_target}"
+      COMMAND ${_libcomm_header_check_target})
   endforeach()
-
-  add_test(NAME libcomm_public_header_check
-    COMMAND "${CMAKE_COMMAND}" --build "${CMAKE_BINARY_DIR}"
-            --target libcomm_public_header_check
-            --config "$<CONFIG>")
 endif()
 
 set(CPACK_PACKAGE_NAME "LibComm")

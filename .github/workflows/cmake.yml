@@ -25,15 +25,13 @@ jobs:
             ninja-build \
             openmpi-bin
 
-      - name: Configure
+      - name: Configure & Build
         run: |
           cmake -S . -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/install" \
             -DBUILD_TESTING=ON
-
-      - name: Check public headers
-        run: cmake --build build --target libcomm_public_header_check -j $(nproc)
+          cmake --build build -j $(nproc)
 
       - name: Run tests
         run: ctest --test-dir build --output-on-failure
