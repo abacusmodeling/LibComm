@@ -2,3 +2,5 @@
 
 .envrc
 .clangd
+/build/
+/install/

@@ -3,11 +3,8 @@ if(POLICY CMP0144) # https://cmake.org/cmake/help/git-stage/policy/CMP0144.html
   cmake_policy(SET CMP0144 NEW)
 endif()
 
-set(LIBCOMM_PACKAGE_VERSION "0.2.0" CACHE STRING
-  "Package version used for generated LibCommConfigVersion.cmake when the source tree has no explicit release version.")
-
 project(LibComm
-  VERSION "${LIBCOMM_PACKAGE_VERSION}"
+  VERSION 0.2.0
   DESCRIPTION "Header-only MPI communication helpers used by LibRI and ABACUS"
   LANGUAGES CXX)
 
