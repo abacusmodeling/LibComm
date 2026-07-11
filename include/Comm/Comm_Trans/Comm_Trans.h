@@ -6,6 +6,7 @@
 #pragma once
 
 #include "../Comm_Tools.h"
+#include "../global/Cereal_Func.h"
 #include "../global/Global_Func.h"
 #include <mpi.h>
 #include <functional>

@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <functional>
 #include <map>
 #include <tuple>
 #include <set>

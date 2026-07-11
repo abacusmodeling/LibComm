@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <functional>
 #include <set>
 
 namespace Comm

@@ -6,7 +6,6 @@
 #pragma once
 
 #include "Comm_Trans.h"
-#include "../global/Cereal_Func.h"
 
 #include <vector>
 #include <string>
