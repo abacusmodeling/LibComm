@@ -79,6 +79,14 @@ install(FILES
   "${CMAKE_CURRENT_BINARY_DIR}/LibCommConfigVersion.cmake"
   DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/LibComm")
 
+configure_file(
+  "${CMAKE_CURRENT_SOURCE_DIR}/cmake/libcomm.pc.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/libcomm.pc"
+  @ONLY)
+
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/libcomm.pc"
+  DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
+
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE"
   DESTINATION "${CMAKE_INSTALL_DOCDIR}")
 

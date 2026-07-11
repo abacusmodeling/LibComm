@@ -1,0 +1,9 @@
+# LibComm is header-only. Use an MPI C++ compiler wrapper (for example, mpicxx).
+prefix=@CMAKE_INSTALL_PREFIX@
+includedir=@CMAKE_INSTALL_FULL_INCLUDEDIR@
+
+Name: LibComm
+Description: @PROJECT_DESCRIPTION@
+Version: @PROJECT_VERSION@
+Cflags: -I${includedir} -fopenmp -pthread
+Libs: -fopenmp -pthread
