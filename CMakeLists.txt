@@ -31,7 +31,6 @@ if(NOT LIBCOMM_INSTALL_EXAMPLE_HEADERS)
 endif()
 
 add_library(LibComm INTERFACE)
-add_library(LibComm::LibComm ALIAS LibComm)
 
 set_target_properties(LibComm PROPERTIES
   EXPORT_NAME LibComm)
@@ -84,6 +83,7 @@ install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE"
   DESTINATION "${CMAKE_INSTALL_DOCDIR}")
 
 if(BUILD_TESTING)
+  add_library(LibComm::LibComm ALIAS LibComm)
   set(_libcomm_header_check_index 0)
   foreach(_libcomm_header IN LISTS LIBCOMM_PUBLIC_HEADERS)
     math(EXPR _libcomm_header_check_index "${_libcomm_header_check_index} + 1")
