@@ -7,6 +7,7 @@
 
 #include <functional>
 #include <vector>
+#include <functional>
 
 namespace Comm
 {

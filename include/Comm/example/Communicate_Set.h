@@ -7,6 +7,7 @@
 
 #include <functional>
 #include <set>
+#include <functional>
 
 namespace Comm
 {
